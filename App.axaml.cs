@@ -6,6 +6,7 @@ using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
+using TwitchLib.Api;
 using TwitchLib.Client;
 using TwitchLib.Client.Events;
 using TwitchLib.Client.Models;
@@ -20,6 +21,8 @@ public partial class App : Application
     public static string TokenClientId = "";
     public static string TokenClientSecret = "";
     public static string TokenClientAccess = "";
+    public static TwitchClient? TwitchClient = null;
+    public static TwitchAPI? TwitchAPI = null;
 
     public override void Initialize()
     {
@@ -48,14 +51,18 @@ public partial class App : Application
         };
 
         var customClient = new WebSocketClient(clientOptions);
-        var client = new TwitchClient(customClient);
+        TwitchClient = new TwitchClient(customClient);
 
-        client.Initialize(creds, TwitchChannelName);
-        client.OnMessageReceived += OnMessageReceived;
-        client.OnConnected += OnConnected;
-        client.OnConnectionError += OnConnectionError;
+        TwitchClient.Initialize(creds, TwitchChannelName);
+        TwitchClient.OnMessageReceived += OnMessageReceived;
+        TwitchClient.OnConnected += OnConnected;
+        TwitchClient.OnConnectionError += OnConnectionError;
 
-        client.Connect();
+        TwitchClient.Connect();
+
+        TwitchAPI = new TwitchAPI();
+        TwitchAPI.Settings.ClientId = TokenClientId;
+        TwitchAPI.Settings.AccessToken = TokenClientAccess;
 
         AvaloniaXamlLoader.Load(this);
     }
