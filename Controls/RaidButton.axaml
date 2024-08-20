@@ -1,0 +1,52 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             xmlns:ai="using:AsyncImageLoader"
+             xmlns:vm="using:BetterRaid.ViewModels"
+             mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+             x:Class="BetterRaid.RaidButton"
+             x:DataType="vm:RaidButtonViewModel"
+             Margin="5"
+             HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch">
+
+  <Design.DataContext>
+    <vm:RaidButtonViewModel />
+  </Design.DataContext>
+
+  <Button HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch"
+          Command="{Binding RaidChannel}">
+
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+      
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="*" />
+      </Grid.ColumnDefinitions>
+      
+      <Grid.RowDefinitions>
+        <RowDefinition Height="75*" />
+        <RowDefinition Height="25*" />
+      </Grid.RowDefinitions>
+
+      <ai:AdvancedImage Grid.Column="0"
+                        Grid.Row="0"
+                        Source="{Binding Channel.ThumbnailUrl}" />
+
+      <StackPanel Grid.Column="0"
+                  Grid.Row="1"
+                  Orientation="Vertical">
+        <Label HorizontalAlignment="Stretch"
+               HorizontalContentAlignment="Center"
+               Content="{Binding Channel.Name}" />
+        <Label HorizontalAlignment="Stretch"
+               HorizontalContentAlignment="Center"
+               Foreground="{Binding ViewerCountColor}"
+               Content="{Binding Channel.ViewerCount}" />
+      </StackPanel>
+
+    </Grid>
+  </Button>
+</UserControl>

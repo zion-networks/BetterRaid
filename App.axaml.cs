@@ -1,5 +1,6 @@
 using System;
 using System.IO;
+using System.Linq;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
@@ -17,6 +18,8 @@ namespace BetterRaid;
 
 public partial class App : Application
 {
+    public static int AutoUpdateDelay = 10_000;
+    public static string TwitchBroadcasterId = "";
     public static string TwitchChannelName = "";
     public static string TokenClientId = "";
     public static string TokenClientSecret = "";
@@ -54,7 +57,6 @@ public partial class App : Application
         TwitchClient = new TwitchClient(customClient);
 
         TwitchClient.Initialize(creds, TwitchChannelName);
-        TwitchClient.OnMessageReceived += OnMessageReceived;
         TwitchClient.OnConnected += OnConnected;
         TwitchClient.OnConnectionError += OnConnectionError;
 
@@ -63,6 +65,19 @@ public partial class App : Application
         TwitchAPI = new TwitchAPI();
         TwitchAPI.Settings.ClientId = TokenClientId;
         TwitchAPI.Settings.AccessToken = TokenClientAccess;
+
+        var channels = TwitchAPI.Helix.Search.SearchChannelsAsync(TwitchChannelName).Result;
+        var exactChannel = channels.Channels.FirstOrDefault(c => c.BroadcasterLogin == TwitchChannelName);
+
+        if (exactChannel != null)
+        {
+            TwitchBroadcasterId = exactChannel.Id;
+            Console.WriteLine($"TWITCH BROADCASTER ID SET TO {TwitchBroadcasterId}");
+        }
+        else
+        {
+            Console.WriteLine("FAILED TO SET BROADCASTER ID!");
+        }
 
         AvaloniaXamlLoader.Load(this);
     }
@@ -75,11 +90,6 @@ public partial class App : Application
     private void OnConnected(object? sender, OnConnectedArgs e)
     {
         Console.WriteLine("[INFO] Twitch Client connected!");
-    }
-
-    private void OnMessageReceived(object? sender, OnMessageReceivedArgs e)
-    {
-        Console.WriteLine($"{e.ChatMessage.DisplayName}: {e.ChatMessage.Message}");
     }
 
     public override void OnFrameworkInitializationCompleted()

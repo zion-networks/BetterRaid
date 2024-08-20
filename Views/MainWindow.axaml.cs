@@ -1,21 +1,16 @@
 using System;
-using System.Collections.Generic;
-using System.Linq;
-using AsyncImageLoader;
-using Avalonia;
+using System.ComponentModel;
+using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Data;
-using Avalonia.Media;
-using Avalonia.Media.Imaging;
 using Avalonia.Threading;
-using BetterRaid.Models;
 using BetterRaid.ViewModels;
-using TwitchLib.Client.Events;
 
 namespace BetterRaid.Views;
 
 public partial class MainWindow : Window
 {
+    private BackgroundWorker _autoUpdater;
+
     private string[] _channelNames = [
         "Cedricun", // Ehrenbruder
         "ZanTal",   // Ehrenschwester
@@ -31,33 +26,80 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
+        _autoUpdater = new BackgroundWorker();
+
         InitializeComponent();
-        PrepareRaidGrid();
-        ConnectToTwitch();
+        GenerateRaidGrid();
+
+        DataContextChanged += OnDataContextChanged;
     }
 
-    private void PrepareRaidGrid()
+    private void OnDataContextChanged(object? sender, EventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm)
+        {
+            vm.PropertyChanged += OnViewModelChanged;
+        }
+    }
+
+    private void OnViewModelChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(MainWindowViewModel.Filter))
+        {
+            if (DataContext is MainWindowViewModel mainWindowVm)
+            {
+                if (string.IsNullOrEmpty(mainWindowVm.Filter))
+                {
+                    foreach (var child in raidGrid.Children)
+                    {
+                        child.IsVisible = true;
+                    }
+
+                    return;
+                }
+
+                foreach (var child in raidGrid.Children)
+                {
+                    if (child.DataContext is RaidButtonViewModel vm)
+                    {
+                        if (string.IsNullOrEmpty(vm.Channel?.DisplayName))
+                            continue;
+                        
+                        if (string.IsNullOrEmpty(mainWindowVm.Filter))
+                            continue;
+                        
+                        if (vm.Channel.DisplayName.Contains(mainWindowVm.Filter, StringComparison.OrdinalIgnoreCase) == false)
+                        {
+                            child.IsVisible = false;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private void GenerateRaidGrid()
     {
         var rows = (int)Math.Ceiling(_channelNames.Length / 3.0);
 
         for (var i = 0; i < rows; i++)
         {
-            raidGrid.RowDefinitions.Add(new RowDefinition(GridLength.Parse("200")));
+            raidGrid.RowDefinitions.Add(new RowDefinition(GridLength.Parse("*")));
         }
 
         var colIndex = 0;
         var rowIndex = 0;
         foreach (var channel in _channelNames)
         {
-            var btn = new Button
+            if (string.IsNullOrEmpty(channel))
+                continue;
+
+            var btn = new RaidButton
             {
-                Content = channel,
-                DataContext = new TwitchChannel(channel),
-                Margin = Thickness.Parse("5"),
-                HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
-                VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
-                HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
-                VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center
+                DataContext = new RaidButtonViewModel
+                {
+                    ChannelName = channel
+                }
             };
 
             Grid.SetColumn(btn, colIndex);
@@ -71,64 +113,41 @@ public partial class MainWindow : Window
                 colIndex = 0;
                 rowIndex++;
             }
+
+            if (btn.DataContext is RaidButtonViewModel vm)
+            {
+                Dispatcher.UIThread.InvokeAsync(vm.GetOrUpdateChannelAsync);
+            }
         }
+
+        _autoUpdater.DoWork += UpdateAllTiles;
+        _autoUpdater.RunWorkerAsync();
     }
 
-    private void ConnectToTwitch()
+    public void UpdateAllTiles(object? sender, DoWorkEventArgs e)
     {
-        if (App.TwitchClient != null && App.TwitchAPI != null)
+        while (e.Cancel == false)
         {
-            foreach (var c in raidGrid.Children)
+            Task.Delay(App.AutoUpdateDelay).Wait();
+
+            if (raidGrid == null || raidGrid.Children.Count == 0)
             {
-                if (c is Button btn)
+                return;
+            }
+
+            foreach (var children in raidGrid.Children)
+            {
+                Dispatcher.UIThread.InvokeAsync(async () =>
                 {
-                    var channel = (btn.DataContext as TwitchChannel)?.Name;
-
-                    if (string.IsNullOrEmpty(channel) == false)
+                    if (children.DataContext is RaidButtonViewModel vm)
                     {
-                        var channels = App.TwitchAPI.Helix.Search.SearchChannelsAsync(channel).Result;
-                        var exactChannel = channels.Channels.FirstOrDefault(c => c.BroadcasterLogin.ToLower() == channel.ToLower());
-
-                        Dispatcher.UIThread.Invoke(() =>
-                        {
-                            if (exactChannel != null)
-                            {
-                                if (btn.DataContext is TwitchChannel ctx)
-                                {
-                                    ctx.BroadcasterId = exactChannel.Id;
-                                    var ib = new ImageBrush();
-                                    ImageBrushLoader.SetSource(ib, exactChannel.ThumbnailUrl);
-                                    btn.Background = ib;
-                                    
-                                    var streamInfo = App.TwitchAPI.Helix.Streams.GetStreamsAsync(userLogins: new List<string>([channel])).Result;
-                                    var exactStreamInfo = streamInfo.Streams.FirstOrDefault(s => s.UserLogin.ToLower() == channel.ToLower());
-                                    
-                                    if (exactStreamInfo != null)
-                                    {
-                                        if (exactChannel.IsLive)
-                                        {
-                                            btn.Foreground = new SolidColorBrush(new Color(byte.MaxValue, 0, byte.MaxValue, 0));
-                                            btn.Content = $"{exactChannel.DisplayName} ({exactStreamInfo.ViewerCount})";
-                                        }
-                                        else
-                                        {
-                                            btn.Foreground = new SolidColorBrush(new Color(byte.MaxValue, byte.MaxValue, 0, 0));
-                                            btn.Content = $"{exactChannel.DisplayName} (Offline)";
-                                        }
-
-                                        ctx.ViewerCount = exactStreamInfo.ViewerCount;
-                                    }
-                                    else
-                                    {
-                                        btn.Foreground = new SolidColorBrush(new Color(byte.MaxValue, byte.MaxValue, 0, 0));
-                                        btn.Content = $"{exactChannel.DisplayName} (Offline)";
-                                    }
-                                }
-                            }
-                        });
+                        await vm.GetOrUpdateChannelAsync();
                     }
                 }
+            );
             }
+
+            Console.WriteLine("Data Update");
         }
     }
 }
