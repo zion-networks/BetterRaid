@@ -1,7 +1,10 @@
 using System;
+using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Interactivity;
 using Avalonia.Threading;
 using BetterRaid.ViewModels;
 
@@ -9,6 +12,7 @@ namespace BetterRaid.Views;
 
 public partial class MainWindow : Window
 {
+    private ObservableCollection<RaidButtonViewModel> _raidButtonVMs;
     private BackgroundWorker _autoUpdater;
 
     private string[] _channelNames = [
@@ -26,12 +30,17 @@ public partial class MainWindow : Window
 
     public MainWindow()
     {
-        _autoUpdater = new BackgroundWorker();
+        _raidButtonVMs = [];
+        _autoUpdater = new();
 
         InitializeComponent();
+        InitializeRaidChannels();
         GenerateRaidGrid();
 
         DataContextChanged += OnDataContextChanged;
+
+        _autoUpdater.DoWork += UpdateAllTiles;
+        _autoUpdater.RunWorkerAsync();
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -50,56 +59,91 @@ public partial class MainWindow : Window
             {
                 if (string.IsNullOrEmpty(mainWindowVm.Filter))
                 {
-                    foreach (var child in raidGrid.Children)
+                    foreach (var vm in _raidButtonVMs)
                     {
-                        child.IsVisible = true;
+                        vm.ShowInGrid = true;
                     }
-
-                    return;
                 }
 
-                foreach (var child in raidGrid.Children)
+                foreach (var vm in _raidButtonVMs)
                 {
-                    if (child.DataContext is RaidButtonViewModel vm)
+                    if (string.IsNullOrEmpty(mainWindowVm.Filter))
+                        continue;
+
+                    if (string.IsNullOrEmpty(vm.Channel?.DisplayName))
+                        continue;
+
+                    vm.ShowInGrid = vm.Channel.DisplayName.Contains(mainWindowVm.Filter, StringComparison.OrdinalIgnoreCase);
+                }
+            }
+
+            GenerateRaidGrid();
+        }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.OnlyOnline))
+        {
+            if (DataContext is MainWindowViewModel mainWindowVm)
+            {
+                foreach (var vm in _raidButtonVMs)
+                {
+                    if (mainWindowVm.OnlyOnline)
                     {
-                        if (string.IsNullOrEmpty(vm.Channel?.DisplayName))
-                            continue;
-                        
-                        if (string.IsNullOrEmpty(mainWindowVm.Filter))
-                            continue;
-                        
-                        if (vm.Channel.DisplayName.Contains(mainWindowVm.Filter, StringComparison.OrdinalIgnoreCase) == false)
-                        {
-                            child.IsVisible = false;
-                        }
+                        vm.ShowInGrid = vm.Channel.IsLive;
+                    }
+                    else
+                    {
+                        vm.ShowInGrid = true;
                     }
                 }
             }
+
+            GenerateRaidGrid();
         }
     }
 
-    private void GenerateRaidGrid()
+    private void InitializeRaidChannels()
     {
-        var rows = (int)Math.Ceiling(_channelNames.Length / 3.0);
+        _raidButtonVMs.Clear();
 
-        for (var i = 0; i < rows; i++)
-        {
-            raidGrid.RowDefinitions.Add(new RowDefinition(GridLength.Parse("*")));
-        }
-
-        var colIndex = 0;
-        var rowIndex = 0;
         foreach (var channel in _channelNames)
         {
             if (string.IsNullOrEmpty(channel))
                 continue;
 
+            _raidButtonVMs.Add(new RaidButtonViewModel
+            {
+                ChannelName = channel
+            });
+        }
+    }
+
+    private void GenerateRaidGrid()
+    {
+        foreach (var child in raidGrid.Children)
+        {
+            if (child is Button btn)
+            {
+                btn.Click -= OnAddChannelButtonClicked;
+            }
+        }
+
+        raidGrid.Children.Clear();
+
+        var visibleChannels = _raidButtonVMs.Where(c => c.ShowInGrid).ToList();
+        var rows = (int)Math.Ceiling((visibleChannels.Count + 1) / 3.0);
+
+        for (var i = 0; i < rows; i++)
+        {
+            raidGrid.RowDefinitions.Add(new RowDefinition(GridLength.Parse("Auto")));
+        }
+
+        var colIndex = 0;
+        var rowIndex = 0;
+        foreach (var channel in visibleChannels)
+        {
             var btn = new RaidButton
             {
-                DataContext = new RaidButtonViewModel
-                {
-                    ChannelName = channel
-                }
+                DataContext = channel
             };
 
             Grid.SetColumn(btn, colIndex);
@@ -120,8 +164,45 @@ public partial class MainWindow : Window
             }
         }
 
-        _autoUpdater.DoWork += UpdateAllTiles;
-        _autoUpdater.RunWorkerAsync();
+        var addButton = new Button
+        {
+            Content = "+",
+            FontSize = 36,
+            Margin = new Avalonia.Thickness(5),
+            HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
+            VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
+            HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,
+            VerticalContentAlignment = Avalonia.Layout.VerticalAlignment.Center
+        };
+
+        addButton.Click += OnAddChannelButtonClicked;
+
+        Grid.SetColumn(addButton, colIndex);
+        Grid.SetRow(addButton, rowIndex);
+
+        raidGrid.Children.Add(addButton);
+    }
+
+    private void OnAddChannelButtonClicked(object? sender, RoutedEventArgs e)
+    {
+        var dialog = new AddChannelWindow();
+        dialog.Position = new Avalonia.PixelPoint(
+            (int)(Position.X + Width / 2 - dialog.Width / 2),
+            (int)(Position.Y + Height / 2 - dialog.Height / 2)
+        );
+        
+        // TODO Button Command not working, Button remains disabled
+        // This is a dirty workaround
+        dialog.okBtn.Click += (sender, args) => {
+            Array.Resize(ref _channelNames, _channelNames.Length + 1);
+            _channelNames[^1] = dialog?.channelNameTxt.Text ?? "";
+            dialog?.Close();
+
+            InitializeRaidChannels();
+            GenerateRaidGrid();
+        };
+
+        dialog.ShowDialog(this);
     }
 
     public void UpdateAllTiles(object? sender, DoWorkEventArgs e)
@@ -138,16 +219,14 @@ public partial class MainWindow : Window
             foreach (var children in raidGrid.Children)
             {
                 Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    if (children.DataContext is RaidButtonViewModel vm)
                     {
-                        await vm.GetOrUpdateChannelAsync();
+                        if (children.DataContext is RaidButtonViewModel vm)
+                        {
+                            await vm.GetOrUpdateChannelAsync();
+                        }
                     }
-                }
-            );
+                );
             }
-
-            Console.WriteLine("Data Update");
         }
     }
 }

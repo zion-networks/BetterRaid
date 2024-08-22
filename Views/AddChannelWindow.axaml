@@ -1,0 +1,37 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+        xmlns:vm="using:BetterRaid.ViewModels"
+        mc:Ignorable="d" d:DesignWidth="100" d:DesignHeight="50"
+        x:Class="BetterRaid.Views.AddChannelWindow"
+        x:DataType="vm:AddChannelWindowViewModel"
+        Width="200"
+        Height="80"
+        MaxWidth="200"
+        MaxHeight="80"
+        Title="Add Channel">
+
+  <Design.DataContext>
+      <vm:AddChannelWindowViewModel/>
+  </Design.DataContext>
+
+  <StackPanel Orientation="Vertical"
+              Margin="5"
+              Spacing="5"
+              HorizontalAlignment="Stretch"
+              VerticalAlignment="Stretch">
+
+    <TextBox HorizontalAlignment="Stretch"
+             VerticalAlignment="Stretch"
+             x:Name="channelNameTxt"
+             Watermark="Enter Channelname" />
+    
+    <Button HorizontalAlignment="Center"
+            VerticalAlignment="Center"
+            Content="OK"
+            x:Name="okBtn"
+            IsEnabled="True" />
+
+  </StackPanel>
+</Window>

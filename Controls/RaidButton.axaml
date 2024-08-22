@@ -40,7 +40,7 @@
                   Orientation="Vertical">
         <Label HorizontalAlignment="Stretch"
                HorizontalContentAlignment="Center"
-               Content="{Binding Channel.Name}" />
+               Content="{Binding Channel.DisplayName}" />
         <Label HorizontalAlignment="Stretch"
                HorizontalContentAlignment="Center"
                Foreground="{Binding ViewerCountColor}"

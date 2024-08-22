@@ -14,6 +14,12 @@ public class RaidButtonViewModel : ViewModelBase
 {
     private TwitchChannel? _channel;
     private SolidColorBrush _viewerCountColor = new SolidColorBrush(Color.FromRgb(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+    
+    public bool ShowInGrid
+    {
+        get;
+        set;
+    } = true;
 
     public required string ChannelName
     {
@@ -56,7 +62,9 @@ public class RaidButtonViewModel : ViewModelBase
         _channel.DisplayName = currentChannelData.DisplayName;
         _channel.IsLive = currentChannelData.IsLive;
         _channel.ThumbnailUrl = currentChannelData.ThumbnailUrl;
-        _channel.ViewerCount = currentStreamData?.ViewerCount.ToString() ?? "(Offline)";
+        _channel.ViewerCount = currentStreamData?.ViewerCount == null
+                             ? "(Offline)"
+                             : $"{currentStreamData?.ViewerCount} Viewers";
 
         if (_channel.IsLive)
         {
