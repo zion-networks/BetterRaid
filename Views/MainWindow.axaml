@@ -48,7 +48,7 @@
                     Spacing="5">
 
             <CheckBox Content="Only Online"
-                      IsChecked="{Binding OnlyOnline, Mode=TwoWay}" />
+                      IsChecked="{Binding Database.OnlyOnline, Mode=TwoWay}" />
 
             <TextBox Grid.Column="1"
                      Grid.Row="0"

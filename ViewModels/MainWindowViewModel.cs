@@ -7,7 +7,6 @@ namespace BetterRaid.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private string? _filter;
-    private bool _onlyOnline;
     
     private BetterRaidDatabase? _db;
 
@@ -21,19 +20,6 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         get => _filter;
         set => SetProperty(ref _filter, value);
-    }
-
-    public bool OnlyOnline
-    {
-        get => _onlyOnline;
-        set
-        {
-            if (SetProperty(ref _onlyOnline, value))
-            {
-                if (Database != null)
-                    Database.OnlyOnline = value;
-            }
-        }
     }
 
     public void ExitApplication()

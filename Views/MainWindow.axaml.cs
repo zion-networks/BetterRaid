@@ -31,8 +31,10 @@ public partial class MainWindow : Window
 
     private void OnDatabaseChanged(object? sender, PropertyChangedEventArgs e)
     {
-        InitializeRaidChannels();
-        GenerateRaidGrid();
+        if (e.PropertyName == nameof(BetterRaidDatabase.OnlyOnline))
+        {
+            GenerateRaidGrid();
+        }
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -42,7 +44,6 @@ public partial class MainWindow : Window
             vm.Database = BetterRaidDatabase.LoadFromFile("db.json");
             vm.Database.AutoSave = true;
             vm.Database.PropertyChanged += OnDatabaseChanged;
-            vm.OnlyOnline = vm.Database.OnlyOnline;
 
             vm.PropertyChanged += OnViewModelChanged;
 
@@ -55,48 +56,6 @@ public partial class MainWindow : Window
     {
         if (e.PropertyName == nameof(MainWindowViewModel.Filter))
         {
-            if (DataContext is MainWindowViewModel mainWindowVm)
-            {
-                if (string.IsNullOrEmpty(mainWindowVm.Filter))
-                {
-                    foreach (var vm in _raidButtonVMs)
-                    {
-                        vm.ShowInGrid = true;
-                    }
-                }
-
-                foreach (var vm in _raidButtonVMs)
-                {
-                    if (string.IsNullOrEmpty(mainWindowVm.Filter))
-                        continue;
-
-                    if (string.IsNullOrEmpty(vm.Channel?.DisplayName))
-                        continue;
-
-                    vm.ShowInGrid = vm.Channel.DisplayName.Contains(mainWindowVm.Filter, StringComparison.OrdinalIgnoreCase);
-                }
-            }
-
-            GenerateRaidGrid();
-        }
-
-        if (e.PropertyName == nameof(MainWindowViewModel.OnlyOnline))
-        {
-            if (DataContext is MainWindowViewModel mainWindowVm)
-            {
-                foreach (var vm in _raidButtonVMs)
-                {
-                    if (mainWindowVm.OnlyOnline)
-                    {
-                        vm.ShowInGrid = vm.Channel.IsLive;
-                    }
-                    else
-                    {
-                        vm.ShowInGrid = true;
-                    }
-                }
-            }
-
             GenerateRaidGrid();
         }
     }
@@ -115,11 +74,25 @@ public partial class MainWindow : Window
             if (string.IsNullOrEmpty(channel))
                 continue;
 
-            _raidButtonVMs.Add(new RaidButtonViewModel
+            var rbvm = new RaidButtonViewModel
             {
                 ChannelName = channel,
                 MainVm = vm
-            });
+            };
+
+            rbvm.PropertyChanged += OnChannelDataChanged;
+
+            _raidButtonVMs.Add(rbvm);
+        }
+
+        UpdateChannelData();
+    }
+
+    private void OnChannelDataChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName == nameof(RaidButtonViewModel.Channel))
+        {
+            GenerateRaidGrid();
         }
     }
 
@@ -135,7 +108,31 @@ public partial class MainWindow : Window
 
         raidGrid.Children.Clear();
 
-        var visibleChannels = _raidButtonVMs.Where(c => c.ShowInGrid).ToList();
+        var vm = DataContext as MainWindowViewModel;
+
+        if (vm?.Database == null)
+        {
+            return;
+        }
+
+        var visibleChannels = _raidButtonVMs.Where(channel =>
+        {
+            var visible = true;
+            if (string.IsNullOrWhiteSpace(vm.Filter) == false)
+            {
+                if (channel.ChannelName.Contains(vm.Filter, StringComparison.OrdinalIgnoreCase) == false)
+                {
+                    visible = false;
+                }
+            }
+
+            if (vm.Database.OnlyOnline && channel.Channel.IsLive == false)
+            {
+                visible = false;
+            }
+
+            return visible;
+        }).ToList();
         var rows = (int)Math.Ceiling((visibleChannels.Count + 1) / 3.0);
 
         for (var i = 0; i < rows; i++)
@@ -164,9 +161,9 @@ public partial class MainWindow : Window
                 rowIndex++;
             }
 
-            if (btn.DataContext is RaidButtonViewModel vm)
+            if (btn.DataContext is RaidButtonViewModel rbvm)
             {
-                Dispatcher.UIThread.InvokeAsync(vm.GetOrUpdateChannelAsync);
+                Dispatcher.UIThread.InvokeAsync(rbvm.GetOrUpdateChannelAsync);
             }
         }
 
@@ -220,28 +217,24 @@ public partial class MainWindow : Window
         dialog.ShowDialog(this);
     }
 
-    public void UpdateAllTiles(object? sender, DoWorkEventArgs e)
+    public void UpdateChannelData()
+    {
+        foreach (var vm in _raidButtonVMs)
+        {
+            Dispatcher.UIThread.InvokeAsync(async () =>
+                {
+                    await vm.GetOrUpdateChannelAsync();
+                }
+            );
+        }
+    }
+
+    private void UpdateAllTiles(object? sender, DoWorkEventArgs e)
     {
         while (e.Cancel == false)
         {
             Task.Delay(App.AutoUpdateDelay).Wait();
-
-            if (raidGrid == null || raidGrid.Children.Count == 0)
-            {
-                return;
-            }
-
-            foreach (var children in raidGrid.Children)
-            {
-                Dispatcher.UIThread.InvokeAsync(async () =>
-                    {
-                        if (children.DataContext is RaidButtonViewModel vm)
-                        {
-                            await vm.GetOrUpdateChannelAsync();
-                        }
-                    }
-                );
-            }
+            UpdateChannelData();
         }
     }
 }
