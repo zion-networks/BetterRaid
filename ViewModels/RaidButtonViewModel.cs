@@ -12,6 +12,7 @@ namespace BetterRaid.ViewModels;
 
 public class RaidButtonViewModel : ViewModelBase
 {
+    private MainWindowViewModel? _mainVm;
     private TwitchChannel? _channel;
     private SolidColorBrush _viewerCountColor = new SolidColorBrush(Color.FromRgb(byte.MaxValue, byte.MaxValue, byte.MaxValue));
     
@@ -32,14 +33,13 @@ public class RaidButtonViewModel : ViewModelBase
     public SolidColorBrush ViewerCountColor
     {
         get => _viewerCountColor;
-        set
-        {
-            if (value == _viewerCountColor)
-                return;
+        set => SetProperty(ref _viewerCountColor, value);
+    }
 
-            _viewerCountColor = value;
-            OnPropertyChanged();
-        }
+    public MainWindowViewModel? MainVm
+    {
+        get => _mainVm;
+        set => SetProperty(ref _mainVm, value);
     }
 
     public async Task<bool> GetOrUpdateChannelAsync()
@@ -130,6 +130,14 @@ public class RaidButtonViewModel : ViewModelBase
             var createdAt = raid.Data[0].CreatedAt;
             var isMature = raid.Data[0].IsMature;
         }
+    }
+
+    public void RemoveChannel()
+    {
+        if (MainVm?.Database == null)
+            return;
+        
+        MainVm.Database.RemoveChannel(ChannelName);
     }
 
     private void OnChannelDataChanged(object? sender, PropertyChangedEventArgs e)

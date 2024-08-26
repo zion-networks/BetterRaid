@@ -10,6 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="BetterRaid"
+        Background="DarkSlateGray"
         WindowStartupLocation="CenterScreen">
 
     <Design.DataContext>
@@ -50,12 +51,12 @@
                       IsChecked="{Binding OnlyOnline, Mode=TwoWay}" />
 
             <TextBox Grid.Column="1"
-                    Grid.Row="0"
-                    Width="200"
-                    Margin="2"
-                    Watermark="Filter Channels"
-                    Text="{Binding Filter, Mode=TwoWay}"
-                    HorizontalAlignment="Right" />
+                     Grid.Row="0"
+                     Width="200"
+                     Margin="2"
+                     Watermark="Filter Channels"
+                     Text="{Binding Filter, Mode=TwoWay}"
+                     HorizontalAlignment="Right" />
 
         </StackPanel>
 

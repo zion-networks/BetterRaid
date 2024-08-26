@@ -35,6 +35,23 @@
                         Grid.Row="0"
                         Source="{Binding Channel.ThumbnailUrl}" />
 
+      <Button Width="32"
+              Height="32"
+              Background="DarkRed"
+              CornerRadius="16"
+              Padding="0"
+              BorderThickness="0"
+              HorizontalContentAlignment="Center"
+              VerticalContentAlignment="Center"
+              HorizontalAlignment="Right"
+              VerticalAlignment="Top"
+              Margin="5"
+              Command="{Binding RemoveChannel}">
+        <Image Source="avares://BetterRaid/Assets/icons8-close-32.png"
+               HorizontalAlignment="Stretch"
+               VerticalAlignment="Stretch" />
+      </Button>
+
       <StackPanel Grid.Column="0"
                   Grid.Row="1"
                   Orientation="Vertical">

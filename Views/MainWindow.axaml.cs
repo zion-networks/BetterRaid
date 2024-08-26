@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using BetterRaid.Models;
 using BetterRaid.ViewModels;
 
 namespace BetterRaid.Views;
@@ -15,39 +16,38 @@ public partial class MainWindow : Window
     private ObservableCollection<RaidButtonViewModel> _raidButtonVMs;
     private BackgroundWorker _autoUpdater;
 
-    private string[] _channelNames = [
-        "Cedricun", // Ehrenbruder
-        "ZanTal",   // Ehrenschwester
-        "PropzMaster",
-        "Artimus83",
-        "HyperonsLive",
-        "theshroomlife",
-        "Robocraft999",
-        "sllikson",
-        "Aron_dc",
-        "AIEsports"
-    ];
-
     public MainWindow()
     {
         _raidButtonVMs = [];
         _autoUpdater = new();
 
-        InitializeComponent();
-        InitializeRaidChannels();
-        GenerateRaidGrid();
-
         DataContextChanged += OnDataContextChanged;
+
+        InitializeComponent();
 
         _autoUpdater.DoWork += UpdateAllTiles;
         _autoUpdater.RunWorkerAsync();
+    }
+
+    private void OnDatabaseChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        InitializeRaidChannels();
+        GenerateRaidGrid();
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
     {
         if (DataContext is MainWindowViewModel vm)
         {
+            vm.Database = BetterRaidDatabase.LoadFromFile("db.json");
+            vm.Database.AutoSave = true;
+            vm.Database.PropertyChanged += OnDatabaseChanged;
+            vm.OnlyOnline = vm.Database.OnlyOnline;
+
             vm.PropertyChanged += OnViewModelChanged;
+
+            InitializeRaidChannels();
+            GenerateRaidGrid();
         }
     }
 
@@ -105,14 +105,20 @@ public partial class MainWindow : Window
     {
         _raidButtonVMs.Clear();
 
-        foreach (var channel in _channelNames)
+        var vm = DataContext as MainWindowViewModel;
+
+        if (vm?.Database == null)
+            return;
+
+        foreach (var channel in vm.Database.Channels)
         {
             if (string.IsNullOrEmpty(channel))
                 continue;
 
             _raidButtonVMs.Add(new RaidButtonViewModel
             {
-                ChannelName = channel
+                ChannelName = channel,
+                MainVm = vm
             });
         }
     }
@@ -190,12 +196,21 @@ public partial class MainWindow : Window
             (int)(Position.X + Width / 2 - dialog.Width / 2),
             (int)(Position.Y + Height / 2 - dialog.Height / 2)
         );
+
+        var vm = DataContext as MainWindowViewModel;
+
+        if (vm?.Database == null)
+            return;
         
         // TODO Button Command not working, Button remains disabled
         // This is a dirty workaround
         dialog.okBtn.Click += (sender, args) => {
-            Array.Resize(ref _channelNames, _channelNames.Length + 1);
-            _channelNames[^1] = dialog?.channelNameTxt.Text ?? "";
+            if (string.IsNullOrWhiteSpace(dialog?.channelNameTxt.Text) == false)
+            {
+                vm.Database.AddChannel(dialog.channelNameTxt.Text);
+                vm.Database.Save();
+            }
+            
             dialog?.Close();
 
             InitializeRaidChannels();
