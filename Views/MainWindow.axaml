@@ -35,9 +35,6 @@
               Grid.Row="0">
 
             <MenuItem Header="File">
-                <MenuItem Header="Add Channel" />
-                <MenuItem Header="Remove Channel" />
-                <Separator />
                 <MenuItem Header="Exit" Command="{Binding ExitApplication}" />
             </MenuItem>
         </Menu>

@@ -31,10 +31,8 @@ public partial class MainWindow : Window
 
     private void OnDatabaseChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(BetterRaidDatabase.OnlyOnline))
-        {
-            GenerateRaidGrid();
-        }
+        InitializeRaidChannels();
+        GenerateRaidGrid();
     }
 
     private void OnDataContextChanged(object? sender, EventArgs e)
@@ -62,6 +60,11 @@ public partial class MainWindow : Window
 
     private void InitializeRaidChannels()
     {
+        foreach (var rbvm in _raidButtonVMs)
+        {
+            rbvm.PropertyChanged -= OnChannelDataChanged;
+        }
+
         _raidButtonVMs.Clear();
 
         var vm = DataContext as MainWindowViewModel;
