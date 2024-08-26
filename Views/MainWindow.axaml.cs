@@ -173,8 +173,9 @@ public partial class MainWindow : Window
         var addButton = new Button
         {
             Content = "+",
-            FontSize = 36,
+            FontSize = 72,
             Margin = new Avalonia.Thickness(5),
+            MinHeight = 250,
             HorizontalAlignment = Avalonia.Layout.HorizontalAlignment.Stretch,
             VerticalAlignment = Avalonia.Layout.VerticalAlignment.Stretch,
             HorizontalContentAlignment = Avalonia.Layout.HorizontalAlignment.Center,

@@ -28,6 +28,7 @@ public class BetterRaidDatabase : INotifyPropertyChanged
         }
     }
     public List<string> Channels { get; set; } = [];
+    public Dictionary<string, DateTime?> LastRaided = [];
     public bool AutoSave { get; set; }
 
     public static BetterRaidDatabase LoadFromFile(string path)
@@ -50,6 +51,14 @@ public class BetterRaidDatabase : INotifyPropertyChanged
         }
         
         dbObj._databaseFilePath = path;
+
+        foreach (var channel in dbObj.Channels)
+        {
+            if (dbObj.LastRaided.ContainsKey(channel) == false)
+            {
+                dbObj.LastRaided.Add(channel, null);
+            }
+        }
 
         Console.WriteLine("[DEBUG] Loaded database from {0}", path);
 
@@ -91,6 +100,36 @@ public class BetterRaidDatabase : INotifyPropertyChanged
         
         Channels.Remove(channel);
         OnPropertyChanged(nameof(Channels));
+    }
+
+    public void SetRaided(string channel, DateTime dateTime)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+
+        if (LastRaided.ContainsKey(channel))
+        {
+            LastRaided[channel] = dateTime;
+        }
+        else
+        {
+            LastRaided.Add(channel, dateTime);
+        }
+
+        OnPropertyChanged(nameof(LastRaided));
+    }
+
+    public DateTime? GetLastRaided(string channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel);
+
+        if (LastRaided.ContainsKey(channel))
+        {
+            return LastRaided[channel];
+        }
+        else
+        {
+            return null;
+        }
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

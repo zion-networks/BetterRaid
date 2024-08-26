@@ -31,6 +31,8 @@ public class RaidButtonViewModel : ViewModelBase
 
     public MainWindowViewModel? MainVm { get; set; }
 
+    public DateTime? LastRaided => MainVm?.Database?.GetLastRaided(ChannelName);
+
     public async Task<bool> GetOrUpdateChannelAsync()
     {
         if (_channel == null)
@@ -118,6 +120,11 @@ public class RaidButtonViewModel : ViewModelBase
         {
             var createdAt = raid.Data[0].CreatedAt;
             var isMature = raid.Data[0].IsMature;
+        }
+
+        if (MainVm?.Database != null)
+        {
+            MainVm.Database.SetRaided(ChannelName, DateTime.Now);
         }
     }
 

@@ -62,6 +62,9 @@
                HorizontalContentAlignment="Center"
                Foreground="{Binding ViewerCountColor}"
                Content="{Binding Channel.ViewerCount}" />
+        <Label HorizontalAlignment="Stretch"
+               HorizontalContentAlignment="Center"
+               Content="{Binding LastRaided, TargetNullValue=Never Raided}" />
       </StackPanel>
 
     </Grid>
