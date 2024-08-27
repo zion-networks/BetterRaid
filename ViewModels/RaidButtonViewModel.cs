@@ -4,6 +4,7 @@ using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
 using Avalonia.Threading;
+using BetterRaid.Events;
 using BetterRaid.Models;
 using TwitchLib.Api.Helix.Models.Raids.StartRaid;
 using TwitchLib.Api.Helix.Models.Search;
@@ -33,6 +34,8 @@ public class RaidButtonViewModel : ViewModelBase
     public MainWindowViewModel? MainVm { get; set; }
 
     public DateTime? LastRaided => MainVm?.Database?.GetLastRaided(ChannelName);
+
+    public event EventHandler<ChannelDataChangedEventArgs>? ChannelDataChanged;
 
     public RaidButtonViewModel(string channelName)
     {
@@ -161,6 +164,20 @@ public class RaidButtonViewModel : ViewModelBase
 
     private void OnChannelDataChanged(object? sender, PropertyChangedEventArgs e)
     {
-        OnPropertyChanged(nameof(Channel));
+        switch (e.PropertyName)
+        {
+            case "IsLive":
+                OnChannelDataChanged(ChannelDataChangedEventArgs.FromIsLive(false, true));
+                break;
+            
+            case "ViewerCount":
+                OnChannelDataChanged(ChannelDataChangedEventArgs.FromViewerCount(0, 10));
+                break;
+        }
+    }
+
+    private void OnChannelDataChanged(ChannelDataChangedEventArgs args)
+    {
+        ChannelDataChanged?.Invoke(this, args);
     }
 }

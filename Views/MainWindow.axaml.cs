@@ -69,7 +69,7 @@ public partial class MainWindow : Window
 
         foreach (var rbvm in _raidButtonVMs)
         {
-            rbvm.PropertyChanged -= OnRaidButtonViewModelChanged;
+            
         }
 
         _raidButtonVMs.Clear();
@@ -89,8 +89,6 @@ public partial class MainWindow : Window
                 MainVm = vm
             };
 
-            rbvm.PropertyChanged += OnRaidButtonViewModelChanged;
-
             _raidButtonVMs.Add(rbvm);
         }
 
@@ -98,11 +96,6 @@ public partial class MainWindow : Window
         {
             _autoUpdater?.RunWorkerAsync();
         }
-    }
-
-    private void OnRaidButtonViewModelChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        
     }
 
     private void GenerateRaidGrid()
