@@ -3,6 +3,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Media;
+using Avalonia.Threading;
 using BetterRaid.Models;
 using TwitchLib.Api.Helix.Models.Raids.StartRaid;
 using TwitchLib.Api.Helix.Models.Search;
@@ -15,13 +16,13 @@ public class RaidButtonViewModel : ViewModelBase
     private TwitchChannel? _channel;
     private SolidColorBrush _viewerCountColor = new SolidColorBrush(Color.FromRgb(byte.MaxValue, byte.MaxValue, byte.MaxValue));
 
-    public required string ChannelName
+    public string ChannelName
     {
         get;
         set;
     }
 
-    public TwitchChannel Channel => _channel ?? new TwitchChannel(ChannelName);
+    public TwitchChannel? Channel => _channel ?? new TwitchChannel(ChannelName);
 
     public SolidColorBrush ViewerCountColor
     {
@@ -33,13 +34,14 @@ public class RaidButtonViewModel : ViewModelBase
 
     public DateTime? LastRaided => MainVm?.Database?.GetLastRaided(ChannelName);
 
+    public RaidButtonViewModel(string channelName)
+    {
+        ChannelName = channelName;
+    }
+
     public async Task<bool> GetOrUpdateChannelAsync()
     {
-        if (_channel == null)
-        {
-            _channel = new TwitchChannel(ChannelName);
-            _channel.PropertyChanged += OnChannelDataChanged;
-        }
+        Console.WriteLine("[DEBUG] Updating channel '{0}' ...", ChannelName);
 
         var currentChannelData = await GetChannelAsync(ChannelName);
 
@@ -48,23 +50,41 @@ public class RaidButtonViewModel : ViewModelBase
 
         var currentStreamData = await GetStreamAsync(currentChannelData);
 
-        _channel.BroadcasterId = currentChannelData.Id;
-        _channel.Name = ChannelName;
-        _channel.DisplayName = currentChannelData.DisplayName;
-        _channel.IsLive = currentChannelData.IsLive;
-        _channel.ThumbnailUrl = currentChannelData.ThumbnailUrl;
-        _channel.ViewerCount = currentStreamData?.ViewerCount == null
+        var swapChannel = new TwitchChannel(ChannelName)
+        {
+            BroadcasterId = currentChannelData.Id,
+            Name = ChannelName,
+            DisplayName = currentChannelData.DisplayName,
+            IsLive = currentChannelData.IsLive,
+            ThumbnailUrl = currentChannelData.ThumbnailUrl,
+            ViewerCount = currentStreamData?.ViewerCount == null
                              ? "(Offline)"
-                             : $"{currentStreamData?.ViewerCount} Viewers";
+                             : $"{currentStreamData?.ViewerCount} Viewers",
+            Category = currentStreamData?.GameName
+        };
 
-        if (_channel.IsLive)
+        if (_channel != null)
         {
-            ViewerCountColor = new SolidColorBrush(Color.FromRgb(0, byte.MaxValue, 0));
+            _channel.PropertyChanged -= OnChannelDataChanged;
         }
-        else
+
+        Dispatcher.UIThread.Invoke(() => {
+            ViewerCountColor = new SolidColorBrush(Color.FromRgb(
+                r: swapChannel.IsLive ? (byte) 0      : byte.MaxValue,
+                g: swapChannel.IsLive ? byte.MaxValue : (byte) 0,
+                b: 0)
+            );
+
+            _channel = swapChannel;
+            OnPropertyChanged(nameof(Channel));
+        });
+
+        if (_channel != null)
         {
-            ViewerCountColor = new SolidColorBrush(Color.FromRgb(byte.MaxValue, 0, 0));
+            _channel.PropertyChanged += OnChannelDataChanged;
         }
+
+        Console.WriteLine("[DEBUG] DONE Updating channel '{0}'", ChannelName);
 
         return true;
     }
@@ -100,6 +120,9 @@ public class RaidButtonViewModel : ViewModelBase
     public async Task RaidChannel()
     {
         if (App.TwitchAPI == null)
+            return;
+        
+        if (Channel == null)
             return;
         
         StartRaidResponse? raid = null;

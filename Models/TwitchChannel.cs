@@ -6,11 +6,12 @@ namespace BetterRaid.Models;
 
 public class TwitchChannel : INotifyPropertyChanged
 {
-    private string? viewerCount;
-    private bool isLive;
-    private string? name;
-    private string? displayName;
-    private string? thumbnailUrl;
+    private string? _viewerCount;
+    private bool _isLive;
+    private string? _name;
+    private string? _displayName;
+    private string? _thumbnailUrl;
+    private string? _category;
 
     public string? BroadcasterId
     {
@@ -19,63 +20,76 @@ public class TwitchChannel : INotifyPropertyChanged
     }
     public string? Name
     {
-        get => name;
+        get => _name;
         set
         {
-            if (value == name)
+            if (value == _name)
                 return;
 
-            name = value;
+            _name = value;
             OnPropertyChanged();
         }
     }
     public bool IsLive
     {
-        get => isLive;
+        get => _isLive;
         set
         {
-            if (value == isLive)
+            if (value == _isLive)
                 return;
 
-            isLive = value;
+            _isLive = value;
             OnPropertyChanged();
         }
     }
     public string? ViewerCount
     {
-        get => viewerCount;
+        get => _viewerCount;
         set
         {
-            if (value == viewerCount)
+            if (value == _viewerCount)
                 return;
 
-            viewerCount = value;
+            _viewerCount = value;
             OnPropertyChanged();
         }
     }
 
     public string? ThumbnailUrl
     {
-        get => thumbnailUrl;
+        get => _thumbnailUrl;
         set
         {
-            if (value == thumbnailUrl)
+            if (value == _thumbnailUrl)
                 return;
 
-            thumbnailUrl = value;
+            _thumbnailUrl = value;
             OnPropertyChanged();
         }
     }
 
     public string? DisplayName
     {
-        get => displayName;
+        get => _displayName;
         set
         {
-            if (value == displayName)
+            if (value == _displayName)
                 return;
             
-            displayName = value;
+            _displayName = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public string? Category
+    {
+        get => _category;
+        set
+        {
+            if (value == _category)
+                return;
+            
+            _category = value;
             OnPropertyChanged();
         }
     }

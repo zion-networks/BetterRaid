@@ -10,8 +10,7 @@
         x:DataType="vm:MainWindowViewModel"
         Icon="/Assets/avalonia-logo.ico"
         Title="BetterRaid"
-        Background="DarkSlateGray"
-        WindowStartupLocation="CenterScreen">
+        Background="DarkSlateGray">
 
     <Design.DataContext>
         <vm:MainWindowViewModel/>
@@ -35,7 +34,12 @@
               Grid.Row="0">
 
             <MenuItem Header="File">
-                <MenuItem Header="Exit" Command="{Binding ExitApplication}" />
+                <MenuItem Header="About"
+                          CommandParameter="{Binding $parent[Window]}"
+                          Command="{Binding ShowAboutWindow}" />
+                <Separator />
+                <MenuItem Header="Exit"
+                          Command="{Binding ExitApplication}" />
             </MenuItem>
         </Menu>
         

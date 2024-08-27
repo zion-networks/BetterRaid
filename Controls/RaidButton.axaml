@@ -57,14 +57,17 @@
                   Orientation="Vertical">
         <Label HorizontalAlignment="Stretch"
                HorizontalContentAlignment="Center"
-               Content="{Binding Channel.DisplayName}" />
+               Content="{Binding Channel.DisplayName, FallbackValue=...}" />
+        <Label HorizontalAlignment="Stretch"
+               HorizontalContentAlignment="Center"
+               Content="{Binding Channel.Category, TargetNullValue=-, FallbackValue=...}" />
         <Label HorizontalAlignment="Stretch"
                HorizontalContentAlignment="Center"
                Foreground="{Binding ViewerCountColor}"
-               Content="{Binding Channel.ViewerCount}" />
+               Content="{Binding Channel.ViewerCount, TargetNullValue=(Offline), FallbackValue=...}" />
         <Label HorizontalAlignment="Stretch"
                HorizontalContentAlignment="Center"
-               Content="{Binding LastRaided, TargetNullValue=Never Raided}" />
+               Content="{Binding LastRaided, TargetNullValue=Never Raided, FallbackValue=...}" />
       </StackPanel>
 
     </Grid>

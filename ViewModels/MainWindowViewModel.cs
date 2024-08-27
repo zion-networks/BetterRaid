@@ -1,6 +1,9 @@
 ﻿using System;
 using Avalonia;
+using Avalonia.Controls;
+using BetterRaid.Extensions;
 using BetterRaid.Models;
+using BetterRaid.Views;
 
 namespace BetterRaid.ViewModels;
 
@@ -26,5 +29,12 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         //TODO polish later
         Environment.Exit(0);
+    }
+
+    public void ShowAboutWindow(Window owner)
+    {
+        var about = new AboutWindow();
+        about.ShowDialog(owner);
+        about.CenterToOwner();
     }
 }

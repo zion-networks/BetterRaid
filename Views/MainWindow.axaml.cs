@@ -6,6 +6,7 @@ using System.Threading.Tasks;
 using Avalonia.Controls;
 using Avalonia.Interactivity;
 using Avalonia.Threading;
+using BetterRaid.Extensions;
 using BetterRaid.Models;
 using BetterRaid.ViewModels;
 
@@ -25,13 +26,14 @@ public partial class MainWindow : Window
 
         InitializeComponent();
 
+        _autoUpdater.WorkerSupportsCancellation = true;
         _autoUpdater.DoWork += UpdateAllTiles;
-        _autoUpdater.RunWorkerAsync();
     }
 
     private void OnDatabaseChanged(object? sender, PropertyChangedEventArgs e)
     {
-        InitializeRaidChannels();
+        // TODO: Only if new channel was added or existing were removed
+        // InitializeRaidChannels();
         GenerateRaidGrid();
     }
 
@@ -60,9 +62,14 @@ public partial class MainWindow : Window
 
     private void InitializeRaidChannels()
     {
+        if (_autoUpdater?.IsBusy == false)
+        {
+            _autoUpdater?.CancelAsync();
+        }
+
         foreach (var rbvm in _raidButtonVMs)
         {
-            rbvm.PropertyChanged -= OnChannelDataChanged;
+            rbvm.PropertyChanged -= OnRaidButtonViewModelChanged;
         }
 
         _raidButtonVMs.Clear();
@@ -77,26 +84,25 @@ public partial class MainWindow : Window
             if (string.IsNullOrEmpty(channel))
                 continue;
 
-            var rbvm = new RaidButtonViewModel
+            var rbvm = new RaidButtonViewModel(channel)
             {
-                ChannelName = channel,
                 MainVm = vm
             };
 
-            rbvm.PropertyChanged += OnChannelDataChanged;
+            rbvm.PropertyChanged += OnRaidButtonViewModelChanged;
 
             _raidButtonVMs.Add(rbvm);
         }
 
-        UpdateChannelData();
+        if (_autoUpdater?.IsBusy == false)
+        {
+            _autoUpdater?.RunWorkerAsync();
+        }
     }
 
-    private void OnChannelDataChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnRaidButtonViewModelChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName == nameof(RaidButtonViewModel.Channel))
-        {
-            GenerateRaidGrid();
-        }
+        
     }
 
     private void GenerateRaidGrid()
@@ -129,13 +135,15 @@ public partial class MainWindow : Window
                 }
             }
 
-            if (vm.Database.OnlyOnline && channel.Channel.IsLive == false)
+            if (vm.Database.OnlyOnline && channel.Channel?.IsLive == false)
             {
                 visible = false;
             }
 
             return visible;
-        }).ToList();
+        }).OrderByDescending(c => c.Channel?.IsLive).ToList();
+
+
         var rows = (int)Math.Ceiling((visibleChannels.Count + 1) / 3.0);
 
         for (var i = 0; i < rows; i++)
@@ -163,11 +171,6 @@ public partial class MainWindow : Window
                 colIndex = 0;
                 rowIndex++;
             }
-
-            if (btn.DataContext is RaidButtonViewModel rbvm)
-            {
-                Dispatcher.UIThread.InvokeAsync(rbvm.GetOrUpdateChannelAsync);
-            }
         }
 
         var addButton = new Button
@@ -193,10 +196,7 @@ public partial class MainWindow : Window
     private void OnAddChannelButtonClicked(object? sender, RoutedEventArgs e)
     {
         var dialog = new AddChannelWindow();
-        dialog.Position = new Avalonia.PixelPoint(
-            (int)(Position.X + Width / 2 - dialog.Width / 2),
-            (int)(Position.Y + Height / 2 - dialog.Height / 2)
-        );
+        dialog.CenterToOwner();
 
         var vm = DataContext as MainWindowViewModel;
 
@@ -225,11 +225,7 @@ public partial class MainWindow : Window
     {
         foreach (var vm in _raidButtonVMs)
         {
-            Dispatcher.UIThread.InvokeAsync(async () =>
-                {
-                    await vm.GetOrUpdateChannelAsync();
-                }
-            );
+            Task.Run(vm.GetOrUpdateChannelAsync);
         }
     }
 
@@ -237,8 +233,8 @@ public partial class MainWindow : Window
     {
         while (e.Cancel == false)
         {
-            Task.Delay(App.AutoUpdateDelay).Wait();
             UpdateChannelData();
+            Task.Delay(App.AutoUpdateDelay).Wait();
         }
     }
 }
