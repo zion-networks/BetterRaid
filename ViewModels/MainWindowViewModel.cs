@@ -1,7 +1,8 @@
 ﻿using System;
-using Avalonia;
+using System.Threading;
 using Avalonia.Controls;
 using BetterRaid.Extensions;
+using BetterRaid.Misc;
 using BetterRaid.Models;
 using BetterRaid.Views;
 
@@ -25,6 +26,8 @@ public partial class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _filter, value);
     }
 
+    public bool IsLoggedIn => App.TwitchApi != null;
+
     public void ExitApplication()
     {
         //TODO polish later
@@ -36,5 +39,17 @@ public partial class MainWindowViewModel : ViewModelBase
         var about = new AboutWindow();
         about.ShowDialog(owner);
         about.CenterToOwner();
+    }
+
+    public void LoginWithTwitch()
+    {
+        Tools.StartOAuthLogin(App.TwitchOAuthUrl, OnTwitchLoginCallback, CancellationToken.None);
+    }
+
+    public void OnTwitchLoginCallback()
+    {
+        App.InitTwitchClient(overrideToken: true);
+
+        OnPropertyChanged(nameof(IsLoggedIn));
     }
 }

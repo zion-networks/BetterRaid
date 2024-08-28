@@ -94,13 +94,13 @@ public class RaidButtonViewModel : ViewModelBase
 
     private async Task<Channel?> GetChannelAsync(string channelName)
     {
-        if (App.TwitchAPI == null)
+        if (App.TwitchApi == null)
             return null;
 
         if (string.IsNullOrEmpty(channelName))
             return null;
 
-        var channels = await App.TwitchAPI.Helix.Search.SearchChannelsAsync(channelName);
+        var channels = await App.TwitchApi.Helix.Search.SearchChannelsAsync(channelName);
         var exactChannel = channels.Channels.FirstOrDefault(c => c.BroadcasterLogin.Equals(channelName, StringComparison.CurrentCultureIgnoreCase));
 
         return exactChannel;
@@ -108,13 +108,13 @@ public class RaidButtonViewModel : ViewModelBase
 
     private async Task<Stream?> GetStreamAsync(Channel currentChannelData)
     {
-        if (App.TwitchAPI == null)
+        if (App.TwitchApi == null)
             return null;
 
         if (currentChannelData == null)
             return null;
 
-        var streams = await App.TwitchAPI.Helix.Streams.GetStreamsAsync(userLogins: [currentChannelData.BroadcasterLogin]);
+        var streams = await App.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [currentChannelData.BroadcasterLogin]);
         var exactStream = streams.Streams.FirstOrDefault(s => s.UserLogin == currentChannelData.BroadcasterLogin);
 
         return exactStream;
@@ -122,7 +122,7 @@ public class RaidButtonViewModel : ViewModelBase
 
     public async Task RaidChannel()
     {
-        if (App.TwitchAPI == null)
+        if (App.TwitchApi == null)
             return;
         
         if (Channel == null)
@@ -132,7 +132,8 @@ public class RaidButtonViewModel : ViewModelBase
 
         try
         {
-            raid = await App.TwitchAPI.Helix.Raids.StartRaidAsync(App.TwitchBroadcasterId, Channel.BroadcasterId);
+            // TODO: Get own broadcaster id
+            raid = await App.TwitchApi.Helix.Raids.StartRaidAsync("", Channel.BroadcasterId);
         }
         catch (Exception e)
         {

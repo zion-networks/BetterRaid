@@ -48,6 +48,29 @@
                     Orientation="Horizontal"
                     Spacing="5">
 
+            <Button Command="{Binding LoginWithTwitch}"
+                    IsVisible="{Binding !IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+                    
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Background" Value="#6441a5" />
+                    </Style>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#b9a3e3" />
+                    </Style>
+                </Button.Styles>
+
+                <StackPanel Orientation="Horizontal">
+                    <TextBlock Text="Login"
+                               Foreground="#f1f1f1"
+                               FontSize="14" />
+                    <Image Source="avares://BetterRaid/Assets/glitch_flat_white.png"
+                           Width="16"
+                           Height="16"
+                           Margin="5, 0, 0, 0" />
+                </StackPanel>
+            </Button>
+
             <CheckBox Content="Only Online"
                       IsChecked="{Binding Database.OnlyOnline, Mode=TwoWay}" />
 
@@ -61,9 +84,21 @@
 
         </StackPanel>
 
+        <TextBlock Text="Please login first!"
+                   Grid.Column="0"
+                   Grid.ColumnSpan="2"
+                   Grid.Row="1"
+                   IsVisible="{Binding !IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   FontSize="24"
+                   Foreground="#f1f1f1" />
+
         <ScrollViewer Grid.Column="0"
                       Grid.ColumnSpan="2"
                       Grid.Row="1"
+                      IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                       HorizontalScrollBarVisibility="Disabled"
                       VerticalScrollBarVisibility="Auto">
 

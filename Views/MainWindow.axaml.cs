@@ -58,10 +58,19 @@ public partial class MainWindow : Window
         {
             GenerateRaidGrid();
         }
+
+        if (e.PropertyName == nameof(MainWindowViewModel.IsLoggedIn) && DataContext is MainWindowViewModel { IsLoggedIn: true })
+        {
+            InitializeRaidChannels();
+            GenerateRaidGrid();
+        }
     }
 
     private void InitializeRaidChannels()
     {
+        if (DataContext is MainWindowViewModel { IsLoggedIn: false })
+            return;
+
         if (_autoUpdater?.IsBusy == false)
         {
             _autoUpdater?.CancelAsync();
@@ -100,6 +109,9 @@ public partial class MainWindow : Window
 
     private void GenerateRaidGrid()
     {
+        if (DataContext is MainWindowViewModel { IsLoggedIn: false })
+            return;
+
         foreach (var child in raidGrid.Children)
         {
             if (child is Button btn)
@@ -216,6 +228,13 @@ public partial class MainWindow : Window
 
     public void UpdateChannelData()
     {
+        var loggedIn = Dispatcher.UIThread.Invoke(() => {
+            return (DataContext as MainWindowViewModel)?.IsLoggedIn ?? false;
+        });
+
+        if (loggedIn == false)
+            return;
+
         foreach (var vm in _raidButtonVMs)
         {
             Task.Run(vm.GetOrUpdateChannelAsync);
