@@ -35,6 +35,25 @@
                         Grid.Row="0"
                         Source="{Binding Channel.ThumbnailUrl}" />
 
+      <Border IsVisible="{Binding IsAd}"
+              BorderThickness="1"
+              BorderBrush="DarkGoldenrod"
+              CornerRadius="4"
+              Width="24"
+              Height="16"
+              HorizontalAlignment="Left"
+              VerticalAlignment="Top"
+              Margin="5">
+        <TextBlock Text="Ad"
+                   Margin="2"
+                   FontSize="12"
+                   HorizontalAlignment="Center"
+                   VerticalAlignment="Center"
+                   TextAlignment="Center"
+                   Foreground="DarkGoldenrod" />
+      </Border>
+      
+
       <Button Width="32"
               Height="32"
               Background="DarkRed"
@@ -46,6 +65,7 @@
               HorizontalAlignment="Right"
               VerticalAlignment="Top"
               Margin="5"
+              IsVisible="{Binding !HideDeleteButton}"
               Command="{Binding RemoveChannel}">
         <Image Source="avares://BetterRaid/Assets/icons8-close-32.png"
                HorizontalAlignment="Stretch"

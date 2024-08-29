@@ -72,6 +72,11 @@ public class BetterRaidDatabase : INotifyPropertyChanged
             throw new ArgumentException("No target path given to save database at");
         }
 
+        if (string.IsNullOrEmpty(path) == false && string.IsNullOrEmpty(_databaseFilePath))
+        {
+            _databaseFilePath = path;
+        }
+
         var dbStr = JsonConvert.SerializeObject(this);
         var targetPath = (path ?? _databaseFilePath)!;
 

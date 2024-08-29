@@ -6,6 +6,7 @@
         mc:Ignorable="d" d:DesignWidth="100" d:DesignHeight="50"
         x:Class="BetterRaid.Views.AddChannelWindow"
         x:DataType="vm:AddChannelWindowViewModel"
+        Icon="/Assets/logo.png"
         Width="200"
         Height="80"
         MaxWidth="200"

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.ObjectModel;
 using System.ComponentModel;
+using System.IO;
 using System.Linq;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -15,15 +16,17 @@ namespace BetterRaid.Views;
 public partial class MainWindow : Window
 {
     private ObservableCollection<RaidButtonViewModel> _raidButtonVMs;
+    private RaidButtonViewModel? _znButtonVm;
     private BackgroundWorker _autoUpdater;
 
     public MainWindow()
     {
         _raidButtonVMs = [];
+        _znButtonVm = null;
         _autoUpdater = new();
 
         DataContextChanged += OnDataContextChanged;
-
+        
         InitializeComponent();
 
         _autoUpdater.WorkerSupportsCancellation = true;
@@ -41,7 +44,20 @@ public partial class MainWindow : Window
     {
         if (DataContext is MainWindowViewModel vm)
         {
-            vm.Database = BetterRaidDatabase.LoadFromFile("db.json");
+            var dbPath = Path.Combine(App.BetterRaidDataPath, "db.json");
+        
+            try
+            {
+                vm.Database = BetterRaidDatabase.LoadFromFile(dbPath);
+            }
+            catch (FileNotFoundException)
+            {
+                var db = new BetterRaidDatabase();
+                db.Save(dbPath);
+
+                vm.Database = db;
+            }
+            
             vm.Database.AutoSave = true;
             vm.Database.PropertyChanged += OnDatabaseChanged;
 
@@ -76,11 +92,6 @@ public partial class MainWindow : Window
             _autoUpdater?.CancelAsync();
         }
 
-        foreach (var rbvm in _raidButtonVMs)
-        {
-            
-        }
-
         _raidButtonVMs.Clear();
 
         var vm = DataContext as MainWindowViewModel;
@@ -99,6 +110,20 @@ public partial class MainWindow : Window
             };
 
             _raidButtonVMs.Add(rbvm);
+        }
+
+        if (App.HasUserZnSubbed)
+        {
+            _znButtonVm = null;
+        }
+        else
+        {
+            _znButtonVm = new RaidButtonViewModel("zionnetworks")
+            {
+                MainVm = vm,
+                HideDeleteButton = true,
+                IsAd = true
+            };
         }
 
         if (_autoUpdater?.IsBusy == false)
@@ -148,15 +173,14 @@ public partial class MainWindow : Window
             return visible;
         }).OrderByDescending(c => c.Channel?.IsLive).ToList();
 
-
-        var rows = (int)Math.Ceiling((visibleChannels.Count + 1) / 3.0);
+        var rows = (int)Math.Ceiling((visibleChannels.Count + (App.HasUserZnSubbed ? 1 : 2)) / 3.0);
 
         for (var i = 0; i < rows; i++)
         {
             raidGrid.RowDefinitions.Add(new RowDefinition(GridLength.Parse("Auto")));
         }
 
-        var colIndex = 0;
+        var colIndex = App.HasUserZnSubbed ? 0 : 1;
         var rowIndex = 0;
         foreach (var channel in visibleChannels)
         {
@@ -196,6 +220,18 @@ public partial class MainWindow : Window
         Grid.SetRow(addButton, rowIndex);
 
         raidGrid.Children.Add(addButton);
+
+        if (App.HasUserZnSubbed == false)
+        {
+            var znButton = new RaidButton
+            {
+                DataContext = _znButtonVm
+            };
+
+            Grid.SetColumn(znButton, 0);
+            Grid.SetRow(znButton, 0);
+            raidGrid.Children.Add(znButton);
+        }
     }
 
     private void OnAddChannelButtonClicked(object? sender, RoutedEventArgs e)
@@ -238,6 +274,11 @@ public partial class MainWindow : Window
         foreach (var vm in _raidButtonVMs)
         {
             Task.Run(vm.GetOrUpdateChannelAsync);
+        }
+
+        if (_znButtonVm != null)
+        {
+            Task.Run(_znButtonVm.GetOrUpdateChannelAsync);
         }
     }
 

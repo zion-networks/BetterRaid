@@ -15,12 +15,18 @@ public partial class App : Application
 {
     internal static TwitchAPI? TwitchApi = null;
     internal static int AutoUpdateDelay = 10_000;
+    internal static bool HasUserZnSubbed = false;
+    internal static string BetterRaidDataPath = "";
+    internal static string TwitchBroadcasterId = "";
     internal static string TwitchOAuthAccessToken = "";
     internal static string TwitchOAuthAccessTokenFilePath = "";
     internal static string TokenClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
     internal static readonly string TwitchOAuthRedirectUrl = "http://localhost:9900";
     internal static readonly string TwitchOAuthResponseType = "token";
-    internal static readonly string[] TwitchOAuthScopes = [ "channel:manage:raids", "user:read:chat" ];
+    internal static readonly string[] TwitchOAuthScopes = [
+        "channel:manage:raids",
+        "user:read:subscriptions"
+    ];
     internal static readonly string TwitchOAuthUrl = $"https://id.twitch.tv/oauth2/authorize"
                                                     + $"?client_id={TokenClientId}"
                                                     + "&redirect_uri=http://localhost:9900"
@@ -30,32 +36,30 @@ public partial class App : Application
     public override void Initialize()
     {
         var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-        var betterRaidDir = "";
 
         switch (Environment.OSVersion.Platform)
         {
             case PlatformID.Win32NT:
-                betterRaidDir = Path.Combine(userHomeDir, "AppData", "Roaming", "BetterRaid");
+                BetterRaidDataPath = Path.Combine(userHomeDir, "AppData", "Roaming", "BetterRaid");
                 break;
             case PlatformID.Unix:
-                betterRaidDir = Path.Combine(userHomeDir, ".config", "BetterRaid");
+                BetterRaidDataPath = Path.Combine(userHomeDir, ".config", "BetterRaid");
                 break;
             case PlatformID.MacOSX:
-                betterRaidDir = Path.Combine(userHomeDir, "Library", "Application Support", "BetterRaid");
+                BetterRaidDataPath = Path.Combine(userHomeDir, "Library", "Application Support", "BetterRaid");
                 break;
         }
 
-        if (!Directory.Exists(betterRaidDir))
-            Directory.CreateDirectory(betterRaidDir);
+        if (!Directory.Exists(BetterRaidDataPath))
+            Directory.CreateDirectory(BetterRaidDataPath);
 
-        TwitchOAuthAccessTokenFilePath = Path.Combine(betterRaidDir, ".access_token");
+        TwitchOAuthAccessTokenFilePath = Path.Combine(BetterRaidDataPath, ".access_token");
 
         if (File.Exists(TwitchOAuthAccessTokenFilePath))
         {
             TwitchOAuthAccessToken = File.ReadAllText(TwitchOAuthAccessTokenFilePath);
             InitTwitchClient();
         }
-
 
         AvaloniaXamlLoader.Load(this);
     }
@@ -77,6 +81,29 @@ public partial class App : Application
             Console.WriteLine("[ERROR] Failed to connect to Twitch API!");
             return;
         }
+
+        var channel = TwitchApi.Helix.Search
+                        .SearchChannelsAsync(user.Login).Result.Channels
+                        .FirstOrDefault(c => c.BroadcasterLogin == user.Login);
+        
+        var userSubs = TwitchApi.Helix.Subscriptions.CheckUserSubscriptionAsync(
+            userId: user.Id,
+            broadcasterId: "1120558409"
+        ).Result.Data;
+
+        if (userSubs.Length > 0 && userSubs.Any(s => s.BroadcasterId == "1120558409"))
+        {
+            HasUserZnSubbed = true;
+        }
+        
+        if (channel == null)
+        {
+            Console.WriteLine("[ERROR] User channel could not be found!");
+            return;
+        }
+
+        TwitchBroadcasterId = channel.Id;
+        System.Console.WriteLine(TwitchBroadcasterId);
 
         Console.WriteLine("[INFO] Connected to Twitch API as '{0}'!", user.DisplayName);
 

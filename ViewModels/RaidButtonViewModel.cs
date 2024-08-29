@@ -16,11 +16,25 @@ public class RaidButtonViewModel : ViewModelBase
 {
     private TwitchChannel? _channel;
     private SolidColorBrush _viewerCountColor = new SolidColorBrush(Color.FromRgb(byte.MaxValue, byte.MaxValue, byte.MaxValue));
+    private bool _hideDeleteButton;
+    private bool _isAd;
 
     public string ChannelName
     {
         get;
         set;
+    }
+
+    public bool HideDeleteButton
+    {
+        get => _hideDeleteButton;
+        set => SetProperty(ref _hideDeleteButton, value);
+    }
+
+    public bool IsAd
+    {
+        get => _isAd;
+        set => SetProperty(ref _isAd, value);
     }
 
     public TwitchChannel? Channel => _channel ?? new TwitchChannel(ChannelName);
@@ -128,12 +142,15 @@ public class RaidButtonViewModel : ViewModelBase
         if (Channel == null)
             return;
         
-        StartRaidResponse? raid = null;
+        if (string.IsNullOrWhiteSpace(App.TwitchBroadcasterId))
+            return;
+        
+        if (App.TwitchBroadcasterId == Channel.BroadcasterId)
+            return;
 
         try
         {
-            // TODO: Get own broadcaster id
-            raid = await App.TwitchApi.Helix.Raids.StartRaidAsync("", Channel.BroadcasterId);
+            await App.TwitchApi.Helix.Raids.StartRaidAsync(App.TwitchBroadcasterId, Channel.BroadcasterId);
         }
         catch (Exception e)
         {
@@ -141,12 +158,6 @@ public class RaidButtonViewModel : ViewModelBase
             Console.WriteLine(e.StackTrace);
 
             return;
-        }
-        
-        if (raid.Data.Length > 0)
-        {
-            var createdAt = raid.Data[0].CreatedAt;
-            var isMature = raid.Data[0].IsMature;
         }
 
         if (MainVm?.Database != null)

@@ -8,6 +8,7 @@
         MaxWidth="300"
         MinWidth="300"
         Height="200"
+        Icon="/Assets/logo.png"
         Background="DarkSlateGray">
 
   <ScrollViewer>
