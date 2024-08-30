@@ -23,7 +23,7 @@
 
       <Label HorizontalAlignment="Stretch"
             HorizontalContentAlignment="Center"
-            Content="v0.0.1"
+            Content="v0.0.1-alpha"
             Margin="0"
             FontSize="12"
             FontWeight="Light" />
@@ -48,7 +48,7 @@
                 TextDecorations="Underline" />
       
       <TextBlock HorizontalAlignment="Left"
-                Text="- UNKNOWN ARTIST"
+                Text="- avigrail"
                 FontSize="12"
                 Margin="15, 0, 0, 0" />
       
