@@ -1,10 +1,10 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BetterRaid.ViewModels"
+        xmlns:br="using:BetterRaid"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ai="using:AsyncImageLoader"
-        xmlns:betterRaid="clr-namespace:BetterRaid"
         mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="800"
         Width="600"
         Height="800"
@@ -118,7 +118,7 @@
                             
                             <ai:AdvancedImage Grid.Column="0"
                                               Grid.Row="0"
-                                              Source="{Binding ThumbnailUrl, TargetNullValue={x:Static betterRaid:App.ChannelPlaceholderImageUrl}}" />
+                                              Source="{Binding ThumbnailUrl, TargetNullValue={x:Static br:App.ChannelPlaceholderImageUrl}}" />
                             
                             <Border Grid.Column="0"
                                     Grid.Row="0"

@@ -1,15 +1,12 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Collections.Specialized;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
-using System.Threading.Tasks;
 using Avalonia.Controls;
-using Avalonia.Threading;
 using BetterRaid.Extensions;
 using BetterRaid.Misc;
 using BetterRaid.Models;
+using BetterRaid.Services;
 using BetterRaid.Views;
 
 namespace BetterRaid.ViewModels;
@@ -46,6 +43,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsLoggedIn => App.TwitchApi != null;
 
+    public MainWindowViewModel(ITwitchDataService t)
+    {
+        Console.WriteLine(t);
+        Console.WriteLine("[DEBUG] MainWindowViewModel created");
+    }
+    
     public void ExitApplication()
     {
         //TODO polish later
@@ -55,6 +58,7 @@ public partial class MainWindowViewModel : ViewModelBase
     public void ShowAboutWindow(Window owner)
     {
         var about = new AboutWindow();
+        about.InjectDataContext<AboutWindowViewModel>();
         about.ShowDialog(owner);
         about.CenterToOwner();
     }

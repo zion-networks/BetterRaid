@@ -1,6 +1,6 @@
 namespace BetterRaid.Services;
 
-public class TwitchDataService
+public interface ITwitchDataService
 {
     
 }

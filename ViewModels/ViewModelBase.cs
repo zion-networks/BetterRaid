@@ -4,4 +4,5 @@ namespace BetterRaid.ViewModels;
 
 public class ViewModelBase : ObservableObject
 {
+    
 }

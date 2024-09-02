@@ -5,14 +5,19 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using BetterRaid.Services;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
+using Microsoft.Extensions.DependencyInjection;
 using TwitchLib.Api;
 
 namespace BetterRaid;
 
 public partial class App : Application
 {
+    private readonly ServiceCollection _services = [];
+    private ServiceProvider? _provider;
+    
     internal static TwitchAPI? TwitchApi = null;
     internal static int AutoUpdateDelay = 10_000;
     internal static bool HasUserZnSubbed = false;
@@ -33,10 +38,14 @@ public partial class App : Application
                                                     + $"&response_type={TwitchOAuthResponseType}"
                                                     + $"&scope={string.Join("+", TwitchOAuthScopes)}";
 
-    internal static readonly string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
+    public const string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
 
+    public IServiceProvider? Provider => _provider;
+    
     public override void Initialize()
     {
+        InitializeServices();
+        
         var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
 
         switch (Environment.OSVersion.Platform)
@@ -63,7 +72,16 @@ public partial class App : Application
             InitTwitchClient();
         }
 
-        AvaloniaXamlLoader.Load(this);
+        AvaloniaXamlLoader.Load(_provider, this);
+    }
+
+    private void InitializeServices()
+    {
+        _services.AddSingleton<ITwitchDataService, TwitchDataService>();
+        _services.AddTransient<MainWindowViewModel>();
+        _services.AddTransient<AboutWindowViewModel>();
+        
+        _provider = _services.BuildServiceProvider();
     }
 
     public static void InitTwitchClient(bool overrideToken = false)
@@ -132,17 +150,28 @@ public partial class App : Application
 
     public override void OnFrameworkInitializationCompleted()
     {
+        BindingPlugins.DataValidators.RemoveAt(0);
+        
+        var vm = _provider?.GetRequiredService<MainWindowViewModel>();
+        
         if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
         {
             // Line below is needed to remove Avalonia data validation.
             // Without this line you will get duplicate validations from both Avalonia and CT
-            BindingPlugins.DataValidators.RemoveAt(0);
+            
             desktop.MainWindow = new MainWindow
             {
-                //DataContext = new MainWindowViewModel()
+                DataContext = vm
             };
         }
-
+        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
+        {
+            singleViewPlatform.MainView = new MainWindow
+            {
+                DataContext = vm
+            };
+        }
+        
         base.OnFrameworkInitializationCompleted();
     }
 }
