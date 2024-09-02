@@ -3,7 +3,7 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.5.002.0
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterRaid", "BetterRaid.csproj", "{77D4100D-424A-4E36-BFF2-14A40F217605}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "BetterRaid", "BetterRaid.csproj", "{70C6D45A-B5F3-44EB-B37A-10A7EC654CC5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -11,10 +11,10 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{77D4100D-424A-4E36-BFF2-14A40F217605}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{77D4100D-424A-4E36-BFF2-14A40F217605}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{77D4100D-424A-4E36-BFF2-14A40F217605}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{77D4100D-424A-4E36-BFF2-14A40F217605}.Release|Any CPU.Build.0 = Release|Any CPU
+		{70C6D45A-B5F3-44EB-B37A-10A7EC654CC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{70C6D45A-B5F3-44EB-B37A-10A7EC654CC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{70C6D45A-B5F3-44EB-B37A-10A7EC654CC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{70C6D45A-B5F3-44EB-B37A-10A7EC654CC5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

@@ -3,7 +3,7 @@
         xmlns:vm="using:BetterRaid.ViewModels"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        mc:Ignorable="d" d:DesignWidth="300" d:DesignHeight="450"
+        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="800"
         Width="600"
         Height="800"
         x:Class="BetterRaid.Views.MainWindow"
