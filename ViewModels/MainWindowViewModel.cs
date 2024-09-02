@@ -1,6 +1,12 @@
 ﻿using System;
+using System.Collections.ObjectModel;
+using System.Collections.Specialized;
+using System.ComponentModel;
+using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls;
+using Avalonia.Threading;
 using BetterRaid.Extensions;
 using BetterRaid.Misc;
 using BetterRaid.Models;
@@ -11,13 +17,25 @@ namespace BetterRaid.ViewModels;
 public partial class MainWindowViewModel : ViewModelBase
 {
     private string? _filter;
-    
+    private ObservableCollection<TwitchChannel> _channels = [];
     private BetterRaidDatabase? _db;
 
     public BetterRaidDatabase? Database
     {
         get => _db;
-        set => SetProperty(ref _db, value);
+        set
+        {
+            if (SetProperty(ref _db, value) && _db != null)
+            {
+                LoadChannelsFromDb();
+            }
+        }
+    }
+
+    public ObservableCollection<TwitchChannel> Channels
+    {
+        get => _channels;
+        set => SetProperty(ref _channels, value);
     }
 
     public string? Filter
@@ -46,10 +64,29 @@ public partial class MainWindowViewModel : ViewModelBase
         Tools.StartOAuthLogin(App.TwitchOAuthUrl, OnTwitchLoginCallback, CancellationToken.None);
     }
 
-    public void OnTwitchLoginCallback()
+    private void OnTwitchLoginCallback()
     {
         App.InitTwitchClient(overrideToken: true);
 
         OnPropertyChanged(nameof(IsLoggedIn));
+    }
+
+    private void LoadChannelsFromDb()
+    {
+        if (_db == null)
+        {
+            return;
+        }
+        
+        Channels.Clear();
+
+        var channels = _db.Channels
+            .Select(channelName => new TwitchChannel(channelName))
+            .ToList();
+        
+        foreach (var c in channels)
+        {
+            Channels.Add(c);
+        }
     }
 }

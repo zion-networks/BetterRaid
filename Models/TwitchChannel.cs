@@ -1,3 +1,4 @@
+using System;
 using System.ComponentModel;
 using System.Runtime.CompilerServices;
 using Avalonia.Threading;
@@ -12,6 +13,8 @@ public class TwitchChannel : INotifyPropertyChanged
     private string? _displayName;
     private string? _thumbnailUrl;
     private string? _category;
+    private string? _title;
+    private DateTime? _lastRaided;
 
     public string? BroadcasterId
     {
@@ -90,6 +93,32 @@ public class TwitchChannel : INotifyPropertyChanged
                 return;
             
             _category = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public string? Title
+    {
+        get => _title;
+        set
+        {
+            if (value == _title)
+                return;
+            
+            _title = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public DateTime? LastRaided
+    {
+        get => _lastRaided;
+        set
+        {
+            if (value == _lastRaided)
+                return;
+            
+            _lastRaided = value;
             OnPropertyChanged();
         }
     }

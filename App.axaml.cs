@@ -33,6 +33,8 @@ public partial class App : Application
                                                     + $"&response_type={TwitchOAuthResponseType}"
                                                     + $"&scope={string.Join("+", TwitchOAuthScopes)}";
 
+    internal static readonly string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
+
     public override void Initialize()
     {
         var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
@@ -137,7 +139,7 @@ public partial class App : Application
             BindingPlugins.DataValidators.RemoveAt(0);
             desktop.MainWindow = new MainWindow
             {
-                DataContext = new MainWindowViewModel(),
+                //DataContext = new MainWindowViewModel()
             };
         }
 
