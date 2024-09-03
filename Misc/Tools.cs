@@ -15,44 +15,18 @@ public static class Tools
     private static Task? _oauthWaiterTask;
 
     // Source: https://stackoverflow.com/a/43232486
-    public static void StartOAuthLogin(string url, Action? callback = null, CancellationToken? token = null)
+    public static void StartOAuthLogin(string url, Action? callback = null, CancellationToken token = default)
     {
-        if (_oauthListener != null)
-            return;
-
-        var _token = token ?? CancellationToken.None;
-
-        _oauthListener = new HttpListener();
-        _oauthListener.Prefixes.Add("http://localhost:9900/");
-        _oauthListener.Start();
-
-        _oauthWaiterTask = WaitForCallback(callback, _token);
-
-        try
+        if (_oauthListener == null)
         {
-            Process.Start(url);
+            _oauthListener = new HttpListener();
+            _oauthListener.Prefixes.Add("http://localhost:9900/");
+            _oauthListener.Start();
+
+            _oauthWaiterTask = WaitForCallback(callback, token);
         }
-        catch
-        {
-            // hack because of this: https://github.com/dotnet/corefx/issues/10361
-            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
-            {
-                url = url.Replace("&", "^&");
-                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
-            {
-                Process.Start("xdg-open", url);
-            }
-            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
-            {
-                Process.Start("open", url);
-            }
-            else
-            {
-                throw;
-            }
-        }
+
+        OpenUrl(url);
     }
 
     private static async Task WaitForCallback(Action? callback, CancellationToken token)
@@ -143,6 +117,35 @@ public static class Tools
 
                 _oauthListener.Stop();
                 return;
+            }
+        }
+    }
+
+    public static void OpenUrl(string url)
+    {
+        try
+        {
+            Process.Start(url);
+        }
+        catch
+        {
+            // hack because of this: https://github.com/dotnet/corefx/issues/10361
+            if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            {
+                url = url.Replace("&", "^&");
+                Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
+            {
+                Process.Start("xdg-open", url);
+            }
+            else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            {
+                Process.Start("open", url);
+            }
+            else
+            {
+                throw;
             }
         }
     }

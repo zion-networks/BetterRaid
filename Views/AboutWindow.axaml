@@ -5,7 +5,6 @@
         xmlns:vm="clr-namespace:BetterRaid.ViewModels"
         mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
         x:Class="BetterRaid.Views.AboutWindow"
-        x:DataType="vm:AboutWindowViewModel"
         Title="About"
         MaxWidth="300"
         MinWidth="300"

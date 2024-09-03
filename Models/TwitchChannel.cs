@@ -1,11 +1,15 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
+using BetterRaid.Attributes;
 
 namespace BetterRaid.Models;
 
 public class TwitchChannel : INotifyPropertyChanged
 {
+    private string? _broadcasterId;
     private string? _viewerCount;
     private bool _isLive;
     private string? _name;
@@ -17,9 +21,17 @@ public class TwitchChannel : INotifyPropertyChanged
 
     public string? BroadcasterId
     {
-        get;
-        set;
+        get => _broadcasterId;
+        set
+        {
+            if (value == _broadcasterId)
+                return;
+
+            _broadcasterId = value;
+            OnPropertyChanged();
+        }
     }
+    
     public string? Name
     {
         get => _name;
@@ -32,6 +44,7 @@ public class TwitchChannel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+    
     public bool IsLive
     {
         get => _isLive;
@@ -44,6 +57,8 @@ public class TwitchChannel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+    
+    [PubSub(PubSubType.VideoPlayback, nameof(BroadcasterId))]
     public string? ViewerCount
     {
         get => _viewerCount;
@@ -125,6 +140,28 @@ public class TwitchChannel : INotifyPropertyChanged
     public TwitchChannel(string channelName)
     {
         Name = channelName;
+    }
+
+    public void InitChannel()
+    {
+        var channel = App.TwitchApi?.Helix.Search.SearchChannelsAsync(Name).Result.Channels
+            .FirstOrDefault(c => c.BroadcasterLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
+
+        if (channel == null)
+            return;
+        
+        var stream = App.TwitchApi?.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
+            .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
+        
+        BroadcasterId = channel.Id;
+        DisplayName = channel.DisplayName;
+        ThumbnailUrl = channel.ThumbnailUrl;
+        Category = channel.GameName;
+        Title = channel.Title;
+        IsLive = channel.IsLive;
+        ViewerCount = stream?.ViewerCount == null
+            ? null
+            : $"{stream.ViewerCount}";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

@@ -5,11 +5,14 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using BetterRaid.Extensions;
 using BetterRaid.Services;
+using BetterRaid.Services.Implementations;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
 using Microsoft.Extensions.DependencyInjection;
 using TwitchLib.Api;
+using TwitchLib.PubSub;
 
 namespace BetterRaid;
 
@@ -43,6 +46,7 @@ public partial class App : Application
 
     public static TwitchAPI? TwitchApi => _twitchApi;
     public static bool HasUserZnSubbed => _hasUserZnSubbed;
+    public static string BetterRaidDataPath => _betterRaidDataPath;
     
     public IServiceProvider? Provider => _provider;
     public static string? TwitchBroadcasterId => _twitchBroadcasterId;
@@ -59,8 +63,8 @@ public partial class App : Application
 
     public override void Initialize()
     {
-        InitializeServices();
         LoadTwitchToken();
+        InitializeServices();
 
         AvaloniaXamlLoader.Load(_provider, this);
     }
@@ -98,8 +102,8 @@ public partial class App : Application
     private void InitializeServices()
     {
         _services.AddSingleton<ITwitchDataService, TwitchDataService>();
+        _services.AddSingleton<ITwitchPubSubService, TwitchPubSubService>();
         _services.AddTransient<MainWindowViewModel>();
-        _services.AddTransient<AboutWindowViewModel>();
         
         _provider = _services.BuildServiceProvider();
     }
@@ -154,7 +158,6 @@ public partial class App : Application
         }
 
         _twitchBroadcasterId = channel.Id;
-        Console.WriteLine(_twitchBroadcasterId);
 
         Console.WriteLine("[INFO] Connected to Twitch API as '{0}'!", user.DisplayName);
 
@@ -188,25 +191,18 @@ public partial class App : Application
     {
         BindingPlugins.DataValidators.RemoveAt(0);
         
-        var vm = _provider?.GetRequiredService<MainWindowViewModel>();
-        
         switch (ApplicationLifetime)
         {
             case IClassicDesktopStyleApplicationLifetime desktop:
-                // Line below is needed to remove Avalonia data validation.
-                // Without this line you will get duplicate validations from both Avalonia and CT
-            
-                desktop.MainWindow = new MainWindow
-                {
-                    DataContext = vm
-                };
+                desktop.MainWindow = new MainWindow();
+                desktop.MainWindow.InjectDataContext<MainWindowViewModel>();
+                
                 break;
             
             case ISingleViewApplicationLifetime singleViewPlatform:
-                singleViewPlatform.MainView = new MainWindow
-                {
-                    DataContext = vm
-                };
+                singleViewPlatform.MainView = new MainWindow();
+                singleViewPlatform.MainView.InjectDataContext<MainWindowViewModel>();
+                
                 break;
         }
         

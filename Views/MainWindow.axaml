@@ -2,10 +2,14 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:BetterRaid.ViewModels"
         xmlns:br="using:BetterRaid"
+        xmlns:con="using:BetterRaid.Converters"
         xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
         xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
         xmlns:ai="using:AsyncImageLoader"
-        mc:Ignorable="d" d:DesignWidth="600" d:DesignHeight="800"
+        xmlns:misc="clr-namespace:BetterRaid.Misc"
+        mc:Ignorable="d"
+        d:DesignWidth="600"
+        d:DesignHeight="800"
         Width="600"
         Height="800"
         x:Class="BetterRaid.Views.MainWindow"
@@ -13,10 +17,10 @@
         Icon="/Assets/logo.png"
         Title="BetterRaid"
         Background="DarkSlateGray">
-
-    <Design.DataContext>
-        <vm:MainWindowViewModel/>
-    </Design.DataContext>
+    
+    <Window.Resources>
+        <con:ChannelOnlineColorConverter x:Key="ChannelOnlineColorConverter" />
+    </Window.Resources>
 
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
@@ -113,8 +117,8 @@
             <ListBox ItemsSource="{Binding Channels}">
                 <ListBox.ItemTemplate>
                     <DataTemplate>
-                        <Grid ColumnDefinitions="200,*"
-                              RowDefinitions="200">
+                        <Grid ColumnDefinitions="100, *, 120"
+                              RowDefinitions="100">
                             
                             <ai:AdvancedImage Grid.Column="0"
                                               Grid.Row="0"
@@ -124,25 +128,33 @@
                                     Grid.Row="0"
                                     HorizontalAlignment="Right"
                                     VerticalAlignment="Bottom"
-                                    Height="20"
-                                    MinWidth="20"
-                                    CornerRadius="10"
-                                    Background="#FFFFFF"
-                                    Padding="3"
-                                    Margin="0, 0, 10, 10">
-                                <TextBlock Text="{Binding ViewerCount, TargetNullValue='-'}"/>
+                                    Height="25"
+                                    MinWidth="25"
+                                    CornerRadius="12.5"
+                                    Background="{Binding IsLive, Converter={StaticResource ChannelOnlineColorConverter}}"
+                                    Padding="0"
+                                    Margin="0, 0, 5, 5">
+                                
+                                <TextBlock Text="{Binding ViewerCount, TargetNullValue='-', Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                           FontSize="12"
+                                           TextAlignment="Center"
+                                           FontWeight="SemiBold"
+                                           Padding="0"
+                                           Margin="5"
+                                           Foreground="Black"/>
                             </Border>
                             
                             <Grid Grid.Column="1"
                                   Grid.Row="0"
-                                  ColumnDefinitions="30*, 70*"
-                                  RowDefinitions="40, 40, 40, 40, 40">
+                                  Margin="10, 0, 0, 0"
+                                  ColumnDefinitions="100, *"
+                                  RowDefinitions="20, 20, 40, 20">
                                 <TextBlock Grid.Column="0"
                                            Grid.Row="0"
                                            Grid.ColumnSpan="2"
                                            FontWeight="Bold"
                                            TextDecorations="Underline"
-                                           Text="{Binding DisplayName, TargetNullValue='???'}" />
+                                           Text="{Binding Name, TargetNullValue='???'}" />
                                 
                                 <TextBlock Grid.Column="0"
                                              Grid.Row="1"
@@ -159,27 +171,62 @@
                                              Text="Last Raided:"
                                              FontWeight="SemiBold" />
                                 
-                                <TextBlock Grid.Column="0"
-                                           Grid.Row="4"
-                                           Text=""
-                                           FontWeight="SemiBold" />
-                                
                                 <TextBlock Grid.Column="1"
                                            Grid.Row="1"
                                            Text="{Binding Category, TargetNullValue='-'}" />
                                 
                                 <TextBlock Grid.Column="1"
                                              Grid.Row="2"
+                                             TextWrapping="Wrap"
                                              Text="{Binding Title, TargetNullValue='-'}" />
                                 
                                 <TextBlock Grid.Column="1"
                                              Grid.Row="3"
                                              Text="{Binding LastRaided, TargetNullValue='Never Raided'}" />
-                                
-                                <TextBlock Grid.Column="1"
-                                           Grid.Row="4"
-                                           Text="" />
                             </Grid>
+                            
+                            <StackPanel Grid.Column="2"
+                                        Grid.Row="0"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch">
+                                
+                                <Button Content="Start Raid"
+                                        Height="50"
+                                        Margin="0"
+                                        CornerRadius="0"
+                                        Background="ForestGreen"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        IsEnabled="{Binding IsLive}"
+                                        IsVisible="{Binding !$parent[Window].((vm:MainWindowViewModel)DataContext).DataService.IsRaidStarted}"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.StartRaidCommand}"
+                                        CommandParameter="{Binding BroadcasterId}" />
+                                
+                                <Button Content="Cancel Raid"
+                                        Height="50"
+                                        Margin="0"
+                                        CornerRadius="0"
+                                        Background="DarkRed"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.IsRaidStarted}"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.StopRaidCommand}" />
+                                
+                                <Button Content="View Channel"
+                                        Height="50"
+                                        CornerRadius="0"
+                                        Margin="0"
+                                        HorizontalAlignment="Stretch"
+                                        VerticalAlignment="Stretch"
+                                        HorizontalContentAlignment="Center"
+                                        VerticalContentAlignment="Center"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.OpenChannelCommand}"
+                                        CommandParameter="{Binding Name}" />
+                            </StackPanel>
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>

@@ -1,7 +1,9 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.IO;
 using System.Linq;
 using System.Threading;
+using System.Threading.Tasks;
 using Avalonia.Controls;
 using BetterRaid.Extensions;
 using BetterRaid.Misc;
@@ -16,6 +18,7 @@ public partial class MainWindowViewModel : ViewModelBase
     private string? _filter;
     private ObservableCollection<TwitchChannel> _channels = [];
     private BetterRaidDatabase? _db;
+    private readonly ITwitchPubSubService _pubSub;
 
     public BetterRaidDatabase? Database
     {
@@ -34,6 +37,8 @@ public partial class MainWindowViewModel : ViewModelBase
         get => _channels;
         set => SetProperty(ref _channels, value);
     }
+    
+    public ITwitchDataService DataService { get; }
 
     public string? Filter
     {
@@ -43,10 +48,12 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public bool IsLoggedIn => App.TwitchApi != null;
 
-    public MainWindowViewModel(ITwitchDataService t)
+    public MainWindowViewModel(ITwitchPubSubService pubSub, ITwitchDataService dataService)
     {
-        Console.WriteLine(t);
-        Console.WriteLine("[DEBUG] MainWindowViewModel created");
+        _pubSub = pubSub;
+        DataService = dataService;
+
+        Database = BetterRaidDatabase.LoadFromFile(Path.Combine(App.BetterRaidDataPath, "db.json"));
     }
     
     public void ExitApplication()
@@ -58,7 +65,6 @@ public partial class MainWindowViewModel : ViewModelBase
     public void ShowAboutWindow(Window owner)
     {
         var about = new AboutWindow();
-        about.InjectDataContext<AboutWindowViewModel>();
         about.ShowDialog(owner);
         about.CenterToOwner();
     }
@@ -80,15 +86,26 @@ public partial class MainWindowViewModel : ViewModelBase
             return;
         }
         
+        foreach (var channel in Channels)
+        {
+            _pubSub.UnregisterReceiver(channel);
+        }
+        
         Channels.Clear();
 
         var channels = _db.Channels
             .Select(channelName => new TwitchChannel(channelName))
             .ToList();
         
-        foreach (var c in channels)
+        foreach (var channel in channels)
         {
-            Channels.Add(c);
+            Task.Run(() =>
+            {
+                channel.InitChannel();
+                _pubSub.RegisterReceiver(channel);
+            });
+            
+            Channels.Add(channel);
         }
     }
 }
