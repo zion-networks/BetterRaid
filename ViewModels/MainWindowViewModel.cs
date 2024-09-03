@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -46,14 +45,14 @@ public partial class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _filter, value);
     }
 
-    public bool IsLoggedIn => App.TwitchApi != null;
+    public bool IsLoggedIn => DataService.UserChannel != null;
 
     public MainWindowViewModel(ITwitchPubSubService pubSub, ITwitchDataService dataService)
     {
         _pubSub = pubSub;
         DataService = dataService;
 
-        Database = BetterRaidDatabase.LoadFromFile(Path.Combine(App.BetterRaidDataPath, "db.json"));
+        Database = BetterRaidDatabase.LoadFromFile(Constants.DatabaseFilePath);
     }
     
     public void ExitApplication()
@@ -71,7 +70,7 @@ public partial class MainWindowViewModel : ViewModelBase
 
     public void LoginWithTwitch()
     {
-        Tools.StartOAuthLogin(App.TwitchOAuthUrl, OnTwitchLoginCallback, CancellationToken.None);
+        Tools.StartOAuthLogin(DataService.GetOAuthUrl(), OnTwitchLoginCallback, CancellationToken.None);
     }
 
     private void OnTwitchLoginCallback()
@@ -101,7 +100,7 @@ public partial class MainWindowViewModel : ViewModelBase
         {
             Task.Run(() =>
             {
-                channel.InitChannel();
+                channel.UpdateChannelData(DataService);
                 _pubSub.RegisterReceiver(channel);
             });
             

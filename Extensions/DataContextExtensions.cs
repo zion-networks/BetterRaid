@@ -1,5 +1,4 @@
 using Avalonia;
-using Avalonia.Controls;
 using Microsoft.Extensions.DependencyInjection;
 
 namespace BetterRaid.Extensions;
@@ -13,10 +12,10 @@ public static class DataContextExtensions
     
     public static void InjectDataContext<T>(this StyledElement e) where T : class
     {
-        if (Application.Current is not App { Provider: not null } app)
+        if (App.ServiceProvider == null)
             return;
         
-        var vm = app.Provider.GetRequiredService<T>();
+        var vm = App.ServiceProvider.GetRequiredService<T>();
         e.DataContext = vm;
     }
 }

@@ -1,9 +1,9 @@
 using System;
-using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using BetterRaid.Attributes;
+using BetterRaid.Services;
 
 namespace BetterRaid.Models;
 
@@ -142,15 +142,15 @@ public class TwitchChannel : INotifyPropertyChanged
         Name = channelName;
     }
 
-    public void InitChannel()
+    public void UpdateChannelData(ITwitchDataService dataService)
     {
-        var channel = App.TwitchApi?.Helix.Search.SearchChannelsAsync(Name).Result.Channels
+        var channel = dataService.TwitchApi.Helix.Search.SearchChannelsAsync(Name).Result.Channels
             .FirstOrDefault(c => c.BroadcasterLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
 
         if (channel == null)
             return;
         
-        var stream = App.TwitchApi?.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
+        var stream = dataService.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
             .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
         
         BroadcasterId = channel.Id;

@@ -14,9 +14,12 @@ public class TwitchPubSubService : ITwitchPubSubService
 {
     private readonly Dictionary<PubSubType, List<PubSubListener>> _targets = new();
     private readonly TwitchPubSub _sub;
+    private readonly ITwitchDataService _dataService;
 
-    public TwitchPubSubService()
+    public TwitchPubSubService(ITwitchDataService dataService)
     {
+        _dataService = dataService;
+        
         _sub = new TwitchPubSub();
         
         _sub.OnPubSubServiceConnected += OnSubOnOnPubSubServiceConnected;
@@ -26,6 +29,29 @@ public class TwitchPubSubService : ITwitchPubSubService
         _sub.OnViewCount += OnSubOnOnViewCount;
         
         _sub.Connect();
+        
+        if (_dataService.UserChannel != null)
+        {
+            RegisterReceiver(_dataService.UserChannel);
+        }
+        
+        _dataService.PropertyChanging += (_, args) =>
+        {
+            if (args.PropertyName != nameof(_dataService.UserChannel))
+                return;
+            
+            if (_dataService.UserChannel != null)
+                UnregisterReceiver(_dataService.UserChannel);
+        };
+        
+        _dataService.PropertyChanged += (_, args) =>
+        {
+            if (args.PropertyName != nameof(_dataService.UserChannel))
+                return;
+            
+            if (_dataService.UserChannel != null)
+                RegisterReceiver(_dataService.UserChannel);
+        };
     }
 
     private void OnSubOnOnViewCount(object? sender, OnViewCountArgs args)
@@ -145,7 +171,7 @@ public class TwitchPubSubService : ITwitchPubSubService
                     }
                     
                     _sub.ListenToVideoPlayback(channelId);
-                    _sub.SendTopics(App.TwitchOAuthAccessToken);
+                    _sub.SendTopics(_dataService.AccessToken);
                     
                     break;
             }
@@ -156,10 +182,9 @@ public class TwitchPubSubService : ITwitchPubSubService
     {
         ArgumentNullException.ThrowIfNull(receiver, nameof(receiver));
         
-        foreach (var target in _targets)
+        foreach (var (topic, listeners) in _targets)
         {
-            var topic = target.Key;
-            var listener = target.Value.Where(x => x.Instance == receiver).ToList();
+            var listener = listeners.Where(x => x.Instance == receiver).ToList();
 
             foreach (var l in listener)
             {
@@ -177,7 +202,7 @@ public class TwitchPubSubService : ITwitchPubSubService
                         break;
                     case PubSubType.VideoPlayback:
                         _sub.ListenToVideoPlayback(l.ChannelId);
-                        _sub.SendTopics(App.TwitchOAuthAccessToken, true);
+                        _sub.SendTopics(_dataService.AccessToken, true);
                         break;
                 }
             }

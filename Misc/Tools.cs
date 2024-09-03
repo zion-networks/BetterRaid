@@ -6,13 +6,13 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
+using BetterRaid.Services;
 
 namespace BetterRaid.Misc;
 
 public static class Tools
 {
     private static HttpListener? _oauthListener;
-    private static Task? _oauthWaiterTask;
 
     // Source: https://stackoverflow.com/a/43232486
     public static void StartOAuthLogin(string url, Action? callback = null, CancellationToken token = default)
@@ -20,10 +20,10 @@ public static class Tools
         if (_oauthListener == null)
         {
             _oauthListener = new HttpListener();
-            _oauthListener.Prefixes.Add("http://localhost:9900/");
+            _oauthListener.Prefixes.Add(Constants.TwitchOAuthRedirectUrl);
             _oauthListener.Start();
 
-            _oauthWaiterTask = WaitForCallback(callback, token);
+            Task.Run(() => WaitForCallback(callback, token), token);
         }
 
         OpenUrl(url);
@@ -84,7 +84,7 @@ public static class Tools
                 req.InputStream.Close();
 
                 var json = data.ToString();
-                var jsonData = JsonObject.Parse(json);
+                var jsonData = JsonNode.Parse(json);
 
                 if (jsonData == null)
                 {
@@ -106,7 +106,12 @@ public static class Tools
                 }
 
                 var accessToken = jsonData["access_token"]?.ToString();
-                App.TwitchOAuthAccessToken = accessToken!;
+                
+                var dataService = App.ServiceProvider?.GetService(typeof(ITwitchDataService));
+                if (dataService is ITwitchDataService twitchDataService)
+                {
+                    twitchDataService.ConnectApi(Constants.TwitchClientId, accessToken!);
+                }
 
                 res.StatusCode = 200;
                 res.Close();
