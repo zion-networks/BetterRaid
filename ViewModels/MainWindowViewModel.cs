@@ -70,8 +70,6 @@ public partial class MainWindowViewModel : ViewModelBase
 
     private void OnTwitchLoginCallback()
     {
-        App.InitTwitchClient(overrideToken: true);
-
         OnPropertyChanged(nameof(IsLoggedIn));
     }
 

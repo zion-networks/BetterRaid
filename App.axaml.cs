@@ -18,61 +18,81 @@ public partial class App : Application
     private readonly ServiceCollection _services = [];
     private ServiceProvider? _provider;
     
-    internal static TwitchAPI? TwitchApi = null;
-    internal static int AutoUpdateDelay = 10_000;
-    internal static bool HasUserZnSubbed = false;
-    internal static string BetterRaidDataPath = "";
-    internal static string TwitchBroadcasterId = "";
-    internal static string TwitchOAuthAccessToken = "";
-    internal static string TwitchOAuthAccessTokenFilePath = "";
-    internal static string TokenClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
-    internal static readonly string TwitchOAuthRedirectUrl = "http://localhost:9900";
-    internal static readonly string TwitchOAuthResponseType = "token";
-    internal static readonly string[] TwitchOAuthScopes = [
+    private static TwitchAPI? _twitchApi;
+    private static bool _hasUserZnSubbed;
+    private static string _betterRaidDataPath = "";
+    private static string _twitchBroadcasterId = "";
+    private static string _twitchOAuthAccessToken = "";
+    private static string _twitchOAuthAccessTokenFilePath = "";
+    private const string TokenClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
+    private const string TwitchOAuthRedirectUrl = "http://localhost:9900";
+    private const string TwitchOAuthResponseType = "token";
+    
+    private static readonly string[] TwitchOAuthScopes = [
         "channel:manage:raids",
         "user:read:subscriptions"
     ];
+    
     internal static readonly string TwitchOAuthUrl = $"https://id.twitch.tv/oauth2/authorize"
                                                     + $"?client_id={TokenClientId}"
-                                                    + "&redirect_uri=http://localhost:9900"
+                                                    + $"&redirect_uri={TwitchOAuthRedirectUrl}"
                                                     + $"&response_type={TwitchOAuthResponseType}"
                                                     + $"&scope={string.Join("+", TwitchOAuthScopes)}";
 
     public const string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
 
-    public IServiceProvider? Provider => _provider;
+    public static TwitchAPI? TwitchApi => _twitchApi;
+    public static bool HasUserZnSubbed => _hasUserZnSubbed;
     
+    public IServiceProvider? Provider => _provider;
+    public static string? TwitchBroadcasterId => _twitchBroadcasterId;
+
+    public static string TwitchOAuthAccessToken
+    {
+        get => _twitchOAuthAccessToken;
+        set
+        {
+            _twitchOAuthAccessToken = value;
+            InitTwitchClient(true);
+        }
+    }
+
     public override void Initialize()
     {
         InitializeServices();
-        
-        var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
-
-        switch (Environment.OSVersion.Platform)
-        {
-            case PlatformID.Win32NT:
-                BetterRaidDataPath = Path.Combine(userHomeDir, "AppData", "Roaming", "BetterRaid");
-                break;
-            case PlatformID.Unix:
-                BetterRaidDataPath = Path.Combine(userHomeDir, ".config", "BetterRaid");
-                break;
-            case PlatformID.MacOSX:
-                BetterRaidDataPath = Path.Combine(userHomeDir, "Library", "Application Support", "BetterRaid");
-                break;
-        }
-
-        if (!Directory.Exists(BetterRaidDataPath))
-            Directory.CreateDirectory(BetterRaidDataPath);
-
-        TwitchOAuthAccessTokenFilePath = Path.Combine(BetterRaidDataPath, ".access_token");
-
-        if (File.Exists(TwitchOAuthAccessTokenFilePath))
-        {
-            TwitchOAuthAccessToken = File.ReadAllText(TwitchOAuthAccessTokenFilePath);
-            InitTwitchClient();
-        }
+        LoadTwitchToken();
 
         AvaloniaXamlLoader.Load(_provider, this);
+    }
+
+    private void LoadTwitchToken()
+    {
+        var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+
+        _betterRaidDataPath = Environment.OSVersion.Platform switch
+        {
+            PlatformID.Win32NT => Path.Combine(userHomeDir, "AppData", "Roaming", "BetterRaid"),
+            PlatformID.Unix => Path.Combine(userHomeDir, ".config", "BetterRaid"),
+            PlatformID.MacOSX => Path.Combine(userHomeDir, "Library", "Application Support", "BetterRaid"),
+            _ => throw new PlatformNotSupportedException($"Your platform '{Environment.OSVersion.Platform}' is not supported. Please report this issue here: https://www.github.com/zion-networks/BetterRaid/issues")
+        };
+
+        if (!Directory.Exists(_betterRaidDataPath))
+        {
+            var di = Directory.CreateDirectory(_betterRaidDataPath);
+            if (di.Exists == false)
+            {
+                throw new Exception($"Failed to create directory '{_betterRaidDataPath}'");
+            }
+        }
+
+        _twitchOAuthAccessTokenFilePath = Path.Combine(_betterRaidDataPath, ".access_token");
+
+        if (!File.Exists(_twitchOAuthAccessTokenFilePath))
+            return;
+        
+        _twitchOAuthAccessToken = File.ReadAllText(_twitchOAuthAccessTokenFilePath);
+        InitTwitchClient();
     }
 
     private void InitializeServices()
@@ -87,64 +107,80 @@ public partial class App : Application
     public static void InitTwitchClient(bool overrideToken = false)
     {
         Console.WriteLine("[INFO] Initializing Twitch Client...");
+        
+        if (string.IsNullOrEmpty(_twitchOAuthAccessToken))
+        {
+            Console.WriteLine("[ERROR] Failed to initialize Twitch Client: Access Token is empty!");
+            return;
+        }
 
-        TwitchApi = new TwitchAPI();
-        TwitchApi.Settings.ClientId = TokenClientId;
-        TwitchApi.Settings.AccessToken = TwitchOAuthAccessToken;
+        _twitchApi = new TwitchAPI
+        {
+            Settings =
+            {
+                ClientId = TokenClientId,
+                AccessToken = _twitchOAuthAccessToken
+            }
+        };
 
         Console.WriteLine("[INFO] Testing Twitch API connection...");
 
-        var user = TwitchApi.Helix.Users.GetUsersAsync().Result.Users.FirstOrDefault();
+        var user = _twitchApi.Helix.Users.GetUsersAsync().Result.Users.FirstOrDefault();
         if (user == null)
         {
-            TwitchApi = null;
+            _twitchApi = null;
             Console.WriteLine("[ERROR] Failed to connect to Twitch API!");
             return;
         }
 
-        var channel = TwitchApi.Helix.Search
+        var channel = _twitchApi.Helix.Search
                         .SearchChannelsAsync(user.Login).Result.Channels
                         .FirstOrDefault(c => c.BroadcasterLogin == user.Login);
         
-        var userSubs = TwitchApi.Helix.Subscriptions.CheckUserSubscriptionAsync(
+        var userSubs = _twitchApi.Helix.Subscriptions.CheckUserSubscriptionAsync(
             userId: user.Id,
             broadcasterId: "1120558409"
         ).Result.Data;
-
-        if (userSubs.Length > 0 && userSubs.Any(s => s.BroadcasterId == "1120558409"))
+        
+        if (userSubs is { Length: > 0 } && userSubs.Any(s => s.BroadcasterId == "1120558409"))
         {
-            HasUserZnSubbed = true;
+            _hasUserZnSubbed = true;
         }
         
         if (channel == null)
         {
-            Console.WriteLine("[ERROR] User channel could not be found!");
+            Console.WriteLine($"[ERROR] Failed to get channel information for '{user.Login}'!");
             return;
         }
 
-        TwitchBroadcasterId = channel.Id;
-        System.Console.WriteLine(TwitchBroadcasterId);
+        _twitchBroadcasterId = channel.Id;
+        Console.WriteLine(_twitchBroadcasterId);
 
         Console.WriteLine("[INFO] Connected to Twitch API as '{0}'!", user.DisplayName);
 
-        if (overrideToken)
-        {
-            File.WriteAllText(TwitchOAuthAccessTokenFilePath, TwitchOAuthAccessToken);
+        if (!overrideToken)
+            return;
+        
+        File.WriteAllText(_twitchOAuthAccessTokenFilePath, _twitchOAuthAccessToken);
 
-            switch (Environment.OSVersion.Platform)
-            {
-                case PlatformID.Win32NT:
-                    File.SetAttributes(TwitchOAuthAccessTokenFilePath, File.GetAttributes(TwitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
-                    break;
-                case PlatformID.Unix:
+        switch (Environment.OSVersion.Platform)
+        {
+            case PlatformID.Win32NT:
+                File.SetAttributes(_twitchOAuthAccessTokenFilePath, File.GetAttributes(_twitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
+                break;
+            
+            case PlatformID.Unix:
 #pragma warning disable CA1416 // Validate platform compatibility
-                    File.SetUnixFileMode(TwitchOAuthAccessTokenFilePath, UnixFileMode.UserRead);
+                File.SetUnixFileMode(_twitchOAuthAccessTokenFilePath, UnixFileMode.UserRead);
 #pragma warning restore CA1416 // Validate platform compatibility
-                    break;
-                case PlatformID.MacOSX:
-                    File.SetAttributes(TwitchOAuthAccessTokenFilePath, File.GetAttributes(TwitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
-                    break;
-            }
+                break;
+            
+            case PlatformID.MacOSX:
+                File.SetAttributes(_twitchOAuthAccessTokenFilePath, File.GetAttributes(_twitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
+                break;
+
+            default:
+                throw new PlatformNotSupportedException($"Your platform '{Environment.OSVersion.Platform}' is not supported. Please report this issue here: https://www.github.com/zion-networks/BetterRaid/issues");
         }
     }
 
@@ -154,22 +190,24 @@ public partial class App : Application
         
         var vm = _provider?.GetRequiredService<MainWindowViewModel>();
         
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        switch (ApplicationLifetime)
         {
-            // Line below is needed to remove Avalonia data validation.
-            // Without this line you will get duplicate validations from both Avalonia and CT
+            case IClassicDesktopStyleApplicationLifetime desktop:
+                // Line below is needed to remove Avalonia data validation.
+                // Without this line you will get duplicate validations from both Avalonia and CT
             
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = vm
-            };
-        }
-        else if (ApplicationLifetime is ISingleViewApplicationLifetime singleViewPlatform)
-        {
-            singleViewPlatform.MainView = new MainWindow
-            {
-                DataContext = vm
-            };
+                desktop.MainWindow = new MainWindow
+                {
+                    DataContext = vm
+                };
+                break;
+            
+            case ISingleViewApplicationLifetime singleViewPlatform:
+                singleViewPlatform.MainView = new MainWindow
+                {
+                    DataContext = vm
+                };
+                break;
         }
         
         base.OnFrameworkInitializationCompleted();
