@@ -7,5 +7,7 @@ public enum PubSubType
     Subscriptions,
     ChannelPoints,
     Bits,
-    Raids
+    Raids,
+    StreamUp,
+    StreamDown
 }

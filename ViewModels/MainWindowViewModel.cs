@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -12,17 +13,17 @@ using BetterRaid.Views;
 
 namespace BetterRaid.ViewModels;
 
-public partial class MainWindowViewModel : ViewModelBase
+public class MainWindowViewModel : ViewModelBase
 {
     private string? _filter;
     private ObservableCollection<TwitchChannel> _channels = [];
-    private BetterRaidDatabase? _db;
+    private readonly BetterRaidDatabase? _db;
     private readonly ITwitchPubSubService _pubSub;
 
     public BetterRaidDatabase? Database
     {
         get => _db;
-        set
+        private init
         {
             if (SetProperty(ref _db, value) && _db != null)
             {
@@ -37,6 +38,8 @@ public partial class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _channels, value);
     }
     
+    public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
+
     public ITwitchDataService DataService { get; }
 
     public string? Filter
@@ -51,10 +54,12 @@ public partial class MainWindowViewModel : ViewModelBase
     {
         _pubSub = pubSub;
         DataService = dataService;
+        DataService.PropertyChanged += OnDataServicePropertyChanged;
 
         Database = BetterRaidDatabase.LoadFromFile(Constants.DatabaseFilePath);
+        Database.PropertyChanged += OnDatabasePropertyChanged;
     }
-    
+
     public void ExitApplication()
     {
         //TODO polish later
@@ -106,5 +111,41 @@ public partial class MainWindowViewModel : ViewModelBase
             
             Channels.Add(channel);
         }
+    }
+
+    private ObservableCollection<TwitchChannel> GetFilteredChannels()
+    {
+        var filteredChannels = Channels
+            .Where(channel => Database?.OnlyOnline == false || channel.IsLive)
+            .Where(channel => string.IsNullOrWhiteSpace(Filter) || channel.Name?.Contains(Filter, StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
+        
+        return new ObservableCollection<TwitchChannel>(filteredChannels);
+    }
+
+    private void OnDataServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(DataService.UserChannel))
+            return;
+        
+        OnPropertyChanged(nameof(IsLoggedIn));
+    }
+
+    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
+    {
+        base.OnPropertyChanged(e);
+        
+        if (e.PropertyName == nameof(Filter))
+        {
+            OnPropertyChanged(nameof(FilteredChannels));
+        }
+    }
+
+    private void OnDatabasePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (e.PropertyName != nameof(BetterRaidDatabase.OnlyOnline))
+            return;
+        
+        OnPropertyChanged(nameof(FilteredChannels));
     }
 }

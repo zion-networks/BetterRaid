@@ -20,7 +20,7 @@ public static class Tools
         if (_oauthListener == null)
         {
             _oauthListener = new HttpListener();
-            _oauthListener.Prefixes.Add(Constants.TwitchOAuthRedirectUrl);
+            _oauthListener.Prefixes.Add(Constants.TwitchOAuthRedirectUrl + "/");
             _oauthListener.Start();
 
             Task.Run(() => WaitForCallback(callback, token), token);
@@ -110,7 +110,7 @@ public static class Tools
                 var dataService = App.ServiceProvider?.GetService(typeof(ITwitchDataService));
                 if (dataService is ITwitchDataService twitchDataService)
                 {
-                    twitchDataService.ConnectApi(Constants.TwitchClientId, accessToken!);
+                    twitchDataService.ConnectApiAsync(Constants.TwitchClientId, accessToken!);
                 }
 
                 res.StatusCode = 200;

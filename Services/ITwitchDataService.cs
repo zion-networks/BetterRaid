@@ -1,4 +1,5 @@
 using System.ComponentModel;
+using System.Threading.Tasks;
 using BetterRaid.Models;
 using TwitchLib.Api;
 
@@ -11,11 +12,12 @@ public interface ITwitchDataService
     public TwitchAPI TwitchApi { get; }
     public bool IsRaidStarted { get; set; }
 
-    public void ConnectApi(string clientId, string accessToken);
+    public Task ConnectApiAsync(string clientId, string accessToken);
     public void SaveAccessToken(string token);
     public bool TryGetUserChannel(out TwitchChannel? userChannel);
     public string GetOAuthUrl();
     public void StartRaid(string from, string to);
+    public bool CanStartRaidCommand(object? arg);
     public void StartRaidCommand(object? arg);
     public void StopRaid();
     public void StopRaidCommand();

@@ -45,6 +45,8 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
+    [PubSub(PubSubType.StreamUp, nameof(BroadcasterId))]
+    [PubSub(PubSubType.StreamDown, nameof(BroadcasterId))]
     public bool IsLive
     {
         get => _isLive;

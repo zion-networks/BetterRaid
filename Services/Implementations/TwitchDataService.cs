@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.ComponentModel;
 using System.IO;
 using System.Runtime.CompilerServices;
+using System.Threading.Tasks;
 using BetterRaid.Misc;
 using BetterRaid.Models;
 using TwitchLib.Api;
@@ -45,7 +46,7 @@ public class TwitchDataService : ITwitchDataService, INotifyPropertyChanged, INo
         if (TryLoadAccessToken(out var token))
         {
             Console.WriteLine($"[INFO][{nameof(TwitchDataService)}] Found access token.");
-            ConnectApi(Constants.TwitchClientId, token);
+            Task.Run(() => ConnectApiAsync(Constants.TwitchClientId, token));
         }
         else
         {
@@ -53,7 +54,7 @@ public class TwitchDataService : ITwitchDataService, INotifyPropertyChanged, INo
         }
     }
     
-    public void ConnectApi(string clientId, string accessToken)
+    public async Task ConnectApiAsync(string clientId, string accessToken)
     {
         Console.WriteLine($"[INFO][{nameof(TwitchDataService)}] Connecting to Twitch API ...");
         
@@ -74,6 +75,8 @@ public class TwitchDataService : ITwitchDataService, INotifyPropertyChanged, INo
             Console.WriteLine($"[ERROR][{nameof(TwitchDataService)}] Could not get user channel.");
             Console.WriteLine($"[ERROR][{nameof(TwitchDataService)}] Failed to connect to Twitch API.");
         }
+        
+        await Task.CompletedTask;
     }
 
     private bool TryLoadAccessToken(out string token)
@@ -127,6 +130,11 @@ public class TwitchDataService : ITwitchDataService, INotifyPropertyChanged, INo
         
         TwitchApi.Helix.Raids.StartRaidAsync(from, to);
         IsRaidStarted = true;
+    }
+
+    public bool CanStartRaidCommand(object? arg)
+    {
+        return UserChannel?.IsLive == true && IsRaidStarted == false;
     }
 
     public void StartRaidCommand(object? arg)

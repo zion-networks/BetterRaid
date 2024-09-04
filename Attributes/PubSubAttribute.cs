@@ -2,7 +2,7 @@ using System;
 
 namespace BetterRaid.Attributes;
 
-[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, Inherited = true)]
+[AttributeUsage(AttributeTargets.Property | AttributeTargets.Field, AllowMultiple = true)]
 public class PubSubAttribute : Attribute
 {
     public PubSubType Type { get; }

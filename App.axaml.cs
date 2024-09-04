@@ -12,7 +12,7 @@ using Microsoft.Extensions.DependencyInjection;
 
 namespace BetterRaid;
 
-public partial class App : Application
+public class App : Application
 {
     private static readonly ServiceCollection Services = [];
     private static ServiceProvider? _serviceProvider;
