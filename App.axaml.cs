@@ -7,7 +7,6 @@ using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
 using BetterRaid.Extensions;
 using BetterRaid.Services;
-using BetterRaid.Services.Implementations;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
 using Microsoft.Extensions.DependencyInjection;
@@ -27,8 +26,7 @@ public class App : Application
     private ServiceProvider InitializeServices()
     {
         var Services = new ServiceCollection();
-        Services.AddSingleton<ITwitchDataService, TwitchDataService>();
-        Services.AddSingleton<ITwitchPubSubService, TwitchPubSubService>();
+        Services.AddSingleton<ITwitchService, TwitchService>();
         Services.AddSingleton<ISynchronizaionService, DispatcherService>(serviceProvider => new DispatcherService(Dispatcher.UIThread));
         Services.AddTransient<IMainViewModelFactory, MainWindowViewModelFactory>();
 

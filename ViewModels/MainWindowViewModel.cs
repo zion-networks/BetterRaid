@@ -18,7 +18,6 @@ public class MainWindowViewModel : ViewModelBase
     private string? _filter;
     private ObservableCollection<TwitchChannel> _channels = [];
     private readonly BetterRaidDatabase? _db;
-    private readonly ITwitchPubSubService _pubSub;
     private readonly ISynchronizaionService _synchronizaionService;
 
     public BetterRaidDatabase? Database
@@ -41,7 +40,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
 
-    public ITwitchDataService DataService { get; }
+    public ITwitchService Twitch { get; }
 
     public string? Filter
     {
@@ -49,14 +48,14 @@ public class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _filter, value);
     }
 
-    public bool IsLoggedIn => DataService.UserChannel != null;
+    public bool IsLoggedIn => Twitch.UserChannel != null;
 
-    public MainWindowViewModel(ITwitchPubSubService pubSub, ITwitchDataService dataService, ISynchronizaionService synchronizaionService)
+    public MainWindowViewModel(ITwitchService twitch, ISynchronizaionService synchronizaionService)
     {
-        _pubSub = pubSub;
-        DataService = dataService;
         _synchronizaionService = synchronizaionService;
-        DataService.PropertyChanged += OnDataServicePropertyChanged;
+        
+        Twitch = twitch;
+        Twitch.PropertyChanged += OnTwitchPropertyChanged;
 
         Database = BetterRaidDatabase.LoadFromFile(Constants.DatabaseFilePath);
         Database.PropertyChanged += OnDatabasePropertyChanged;
@@ -77,7 +76,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoginWithTwitch()
     {
-        Tools.StartOAuthLogin(DataService.GetOAuthUrl(), DataService, OnTwitchLoginCallback, CancellationToken.None);
+        Tools.StartOAuthLogin(Twitch, OnTwitchLoginCallback, CancellationToken.None);
     }
 
     private void OnTwitchLoginCallback()
@@ -94,7 +93,7 @@ public class MainWindowViewModel : ViewModelBase
 
         foreach (var channel in Channels)
         {
-            _pubSub.UnregisterReceiver(channel);
+            Twitch.UnregisterFromEvents(channel);
         }
 
         Channels.Clear();
@@ -107,8 +106,8 @@ public class MainWindowViewModel : ViewModelBase
         {
             Task.Run(() =>
             {
-                channel.UpdateChannelData(DataService);
-                _pubSub.RegisterReceiver(channel);
+                channel.UpdateChannelData(Twitch);
+                Twitch.RegisterForEvents(channel);
             });
 
             Channels.Add(channel);
@@ -125,9 +124,9 @@ public class MainWindowViewModel : ViewModelBase
         return new ObservableCollection<TwitchChannel>(filteredChannels);
     }
 
-    private void OnDataServicePropertyChanged(object? sender, PropertyChangedEventArgs e)
+    private void OnTwitchPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(DataService.UserChannel))
+        if (e.PropertyName != nameof(Twitch.UserChannel))
             return;
 
         OnPropertyChanged(nameof(IsLoggedIn));
