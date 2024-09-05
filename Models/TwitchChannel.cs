@@ -165,17 +165,27 @@ public class TwitchChannel : INotifyPropertyChanged
 
     public void OnStreamUp(object? sender, OnStreamUpArgs args)
     {
+        if (args.ChannelId != BroadcasterId)
+            return;
+        
         IsLive = true;
     }
 
-    public void OnStreamDown(object? sender, OnStreamDownArgs e)
+    public void OnStreamDown(object? sender, OnStreamDownArgs args)
     {
+        if (args.ChannelId != BroadcasterId)
+            return;
+
         IsLive = false;
     }
 
-    public void OnViewCount(object? sender, OnViewCountArgs e)
+    public void OnViewCount(object? sender, OnViewCountArgs args)
     {
-        ViewerCount = $"{e.Viewers}";
+        if (args.ChannelId != BroadcasterId)
+            return;
+
+        
+        ViewerCount = $"{args.Viewers}";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
