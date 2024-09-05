@@ -15,7 +15,7 @@ public static class Tools
     private static HttpListener? _oauthListener;
 
     // Source: https://stackoverflow.com/a/43232486
-    public static void StartOAuthLogin(string url, Action? callback = null, CancellationToken token = default)
+    public static void StartOAuthLogin(ITwitchService twitchService,  Action? callback = null, CancellationToken token = default)
     {
         if (_oauthListener == null)
         {
@@ -23,13 +23,13 @@ public static class Tools
             _oauthListener.Prefixes.Add(Constants.TwitchOAuthRedirectUrl + "/");
             _oauthListener.Start();
 
-            Task.Run(() => WaitForCallback(callback, token), token);
+            Task.Run(() => WaitForCallback(callback, token, twitchService), token);
         }
 
-        OpenUrl(url);
+        OpenUrl(twitchService.GetOAuthUrl());
     }
 
-    private static async Task WaitForCallback(Action? callback, CancellationToken token)
+    private static async Task WaitForCallback(Action? callback, CancellationToken token, ITwitchService twitchService)
     {
         if (_oauthListener == null)
             return;
@@ -107,11 +107,7 @@ public static class Tools
 
                 var accessToken = jsonData["access_token"]?.ToString();
                 
-                var dataService = App.ServiceProvider?.GetService(typeof(ITwitchService));
-                if (dataService is ITwitchService twitchDataService)
-                {
-                    twitchDataService.ConnectApiAsync(Constants.TwitchClientId, accessToken!);
-                }
+                twitchService.ConnectApiAsync(Constants.TwitchClientId, accessToken!);                
 
                 res.StatusCode = 200;
                 res.Close();
