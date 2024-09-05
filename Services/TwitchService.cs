@@ -10,8 +10,6 @@ using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.PubSub;
 using TwitchLib.PubSub.Events;
-using OnEmoteOnlyArgs = TwitchLib.PubSub.Events.OnEmoteOnlyArgs;
-using OnLogArgs = TwitchLib.PubSub.Events.OnLogArgs;
 
 namespace BetterRaid.Services;
 

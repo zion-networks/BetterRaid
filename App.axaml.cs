@@ -1,13 +1,11 @@
 using System;
-using System.Diagnostics;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
 using Avalonia.Threading;
-using BetterRaid.Extensions;
 using BetterRaid.Services;
-using BetterRaid.ViewModels;
+using BetterRaid.Services.Implementations;
 using BetterRaid.Views;
 using Microsoft.Extensions.DependencyInjection;
 
@@ -25,12 +23,12 @@ public class App : Application
 
     private ServiceProvider InitializeServices()
     {
-        var Services = new ServiceCollection();
-        Services.AddSingleton<ITwitchService, TwitchService>();
-        Services.AddSingleton<ISynchronizaionService, DispatcherService>(serviceProvider => new DispatcherService(Dispatcher.UIThread));
-        Services.AddTransient<IMainViewModelFactory, MainWindowViewModelFactory>();
+        var services = new ServiceCollection();
+        services.AddSingleton<ITwitchService, TwitchService>();
+        services.AddSingleton<ISynchronizaionService, DispatcherService>(serviceProvider => new DispatcherService(Dispatcher.UIThread));
+        services.AddTransient<IMainViewModelFactory, MainWindowViewModelFactory>();
 
-        return Services.BuildServiceProvider();
+        return services.BuildServiceProvider();
     }
 
     public override void OnFrameworkInitializationCompleted()
@@ -44,7 +42,7 @@ public class App : Application
 
         var viewModelFactory = _serviceProvider.GetRequiredService<IMainViewModelFactory>();
         var mainWindowViewModel = viewModelFactory.CreateMainWindowViewModel();
-        var mainWindow = new MainWindow()
+        var mainWindow = new MainWindow
         {
             DataContext = mainWindowViewModel
         };

@@ -1,6 +1,5 @@
 ﻿using Avalonia.Threading;
 using System;
-using System.Threading;
 
 namespace BetterRaid.Services.Implementations;
 public class DispatcherService : ISynchronizaionService
