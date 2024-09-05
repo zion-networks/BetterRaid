@@ -107,8 +107,8 @@ public static class Tools
 
                 var accessToken = jsonData["access_token"]?.ToString();
                 
-                var dataService = App.ServiceProvider?.GetService(typeof(ITwitchDataService));
-                if (dataService is ITwitchDataService twitchDataService)
+                var dataService = App.ServiceProvider?.GetService(typeof(ITwitchService));
+                if (dataService is ITwitchService twitchDataService)
                 {
                     twitchDataService.ConnectApiAsync(Constants.TwitchClientId, accessToken!);
                 }

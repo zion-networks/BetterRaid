@@ -2,8 +2,8 @@ using System;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
-using BetterRaid.Attributes;
 using BetterRaid.Services;
+using TwitchLib.PubSub.Events;
 
 namespace BetterRaid.Models;
 
@@ -45,8 +45,6 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
-    [PubSub(PubSubType.StreamUp, nameof(BroadcasterId))]
-    [PubSub(PubSubType.StreamDown, nameof(BroadcasterId))]
     public bool IsLive
     {
         get => _isLive;
@@ -60,7 +58,6 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
-    [PubSub(PubSubType.VideoPlayback, nameof(BroadcasterId))]
     public string? ViewerCount
     {
         get => _viewerCount;
@@ -144,15 +141,15 @@ public class TwitchChannel : INotifyPropertyChanged
         Name = channelName;
     }
 
-    public void UpdateChannelData(ITwitchDataService dataService)
+    public void UpdateChannelData(ITwitchService service)
     {
-        var channel = dataService.TwitchApi.Helix.Search.SearchChannelsAsync(Name).Result.Channels
+        var channel = service.TwitchApi.Helix.Search.SearchChannelsAsync(Name).Result.Channels
             .FirstOrDefault(c => c.BroadcasterLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
 
         if (channel == null)
             return;
         
-        var stream = dataService.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
+        var stream = service.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
             .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
         
         BroadcasterId = channel.Id;
@@ -164,6 +161,21 @@ public class TwitchChannel : INotifyPropertyChanged
         ViewerCount = stream?.ViewerCount == null
             ? null
             : $"{stream.ViewerCount}";
+    }
+
+    public void OnStreamUp(object? sender, OnStreamUpArgs args)
+    {
+        IsLive = true;
+    }
+
+    public void OnStreamDown(object? sender, OnStreamDownArgs e)
+    {
+        IsLive = false;
+    }
+
+    public void OnViewCount(object? sender, OnViewCountArgs e)
+    {
+        ViewerCount = $"{e.Viewers}";
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;

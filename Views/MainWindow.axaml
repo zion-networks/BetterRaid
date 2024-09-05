@@ -33,7 +33,7 @@
                               Width="40"
                               Height="40"
                               Margin="5"
-                              Source="{Binding DataService.UserChannel.ThumbnailUrl,
+                              Source="{Binding Twitch.UserChannel.ThumbnailUrl,
                                    FallbackValue={x:Static misc:Constants.ChannelPlaceholderImageUrl},
                                    TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
             
@@ -42,9 +42,9 @@
                        FontWeight="Bold">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0} ({1})">
-                        <Binding Path="DataService.UserChannel.DisplayName"
+                        <Binding Path="Twitch.UserChannel.DisplayName"
                                  FallbackValue="-" />
-                        <Binding Path="DataService.UserChannel.ViewerCount"
+                        <Binding Path="Twitch.UserChannel.ViewerCount"
                                  FallbackValue="Offline"
                                  TargetNullValue="Offline" />
                     </MultiBinding>
@@ -210,8 +210,8 @@
                                         HorizontalContentAlignment="Center"
                                         VerticalContentAlignment="Center"
                                         IsEnabled="{Binding IsLive}"
-                                        IsVisible="{Binding !$parent[Window].((vm:MainWindowViewModel)DataContext).DataService.IsRaidStarted}"
-                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.StartRaidCommand}"
+                                        IsVisible="{Binding !$parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.IsRaidStarted}"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand}"
                                         CommandParameter="{Binding BroadcasterId}" />
                                 
                                 <Button Content="Cancel Raid"
@@ -223,8 +223,8 @@
                                         VerticalAlignment="Stretch"
                                         HorizontalContentAlignment="Center"
                                         VerticalContentAlignment="Center"
-                                        IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.IsRaidStarted}"
-                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.StopRaidCommand}" />
+                                        IsVisible="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.IsRaidStarted}"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StopRaidCommand}" />
                                 
                                 <Button Content="View Channel"
                                         Height="50"
@@ -234,7 +234,7 @@
                                         VerticalAlignment="Stretch"
                                         HorizontalContentAlignment="Center"
                                         VerticalContentAlignment="Center"
-                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).DataService.OpenChannelCommand}"
+                                        Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.OpenChannelCommand}"
                                         CommandParameter="{Binding Name}" />
                             </StackPanel>
                         </Grid>
