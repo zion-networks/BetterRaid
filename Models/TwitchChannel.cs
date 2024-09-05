@@ -18,6 +18,20 @@ public class TwitchChannel : INotifyPropertyChanged
     private string? _category;
     private string? _title;
     private DateTime? _lastRaided;
+    private string? _id;
+
+    public string? Id
+    {
+        get => _id;
+        set
+        {
+            if (value == _id)
+                return;
+            
+            _id = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string? BroadcasterId
     {
@@ -151,7 +165,8 @@ public class TwitchChannel : INotifyPropertyChanged
         
         var stream = service.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
             .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
-        
+
+        Id = channel.Id;
         BroadcasterId = channel.Id;
         DisplayName = channel.DisplayName;
         ThumbnailUrl = channel.ThumbnailUrl;
@@ -184,7 +199,6 @@ public class TwitchChannel : INotifyPropertyChanged
         if (args.ChannelId != BroadcasterId)
             return;
 
-        
         ViewerCount = $"{args.Viewers}";
     }
 

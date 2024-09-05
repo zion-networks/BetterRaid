@@ -38,6 +38,7 @@ public interface ITwitchService
 public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INotifyPropertyChanging
 {
     private bool _isRaidStarted;
+    private int _raidParticipants;
     private TwitchChannel? _userChannel;
     private readonly List<TwitchChannel> _registeredChannels;
     private User? _user;
@@ -72,7 +73,13 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
 
     public TwitchAPI TwitchApi { get; }
     public TwitchPubSub TwitchEvents { get;  }
-    
+
+    public int RaidParticipants
+    {
+        get => _raidParticipants;
+        set => SetField(ref _raidParticipants, value);
+    }
+
     public TwitchService()
     {
         _registeredChannels = [];
@@ -100,19 +107,20 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connecting to Twitch Events ...");
 
         TwitchEvents.OnRaidGo += OnUserRaidGo;
-        TwitchEvents.OnRaidUpdateV2 += OnUserRaidUpdate;
+        TwitchEvents.OnRaidUpdate += OnUserRaidUpdate;
         TwitchEvents.OnStreamUp += OnUserStreamUp;
         TwitchEvents.OnStreamDown += OnUserStreamDown;
+        TwitchEvents.OnViewCount += OnViewCount;
+        TwitchEvents.OnLog += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] {args.Data}");
+        TwitchEvents.OnPubSubServiceError += (sender, args) => Console.WriteLine($"[ERROR][{nameof(TwitchService)}] {args.Exception.Message}");
+        TwitchEvents.OnPubSubServiceConnected += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connected to Twitch PubSub.");
+        TwitchEvents.OnPubSubServiceClosed += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] Disconnected from Twitch PubSub.");
         
-        TwitchEvents.ListenToRaid(UserChannel.BroadcasterId);
         TwitchEvents.ListenToVideoPlayback(UserChannel.BroadcasterId);
+        TwitchEvents.ListenToRaid(UserChannel.BroadcasterId);
         
         TwitchEvents.SendTopics(token);
         TwitchEvents.Connect();
-        
-        RegisterForEvents(UserChannel);
-        
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connected to Twitch Events.");
         
         await Task.CompletedTask;
     }
@@ -210,11 +218,13 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
 
     public void RegisterForEvents(TwitchChannel channel)
     {
+        Console.WriteLine($"[DEBUG][{nameof(TwitchService)}] Registering for events for {channel.Name} ...");
+        
         TwitchEvents.OnStreamUp += channel.OnStreamUp;
         TwitchEvents.OnStreamDown += channel.OnStreamDown;
         TwitchEvents.OnViewCount += channel.OnViewCount;
         
-        TwitchEvents.ListenToVideoPlayback(channel.BroadcasterId);
+        TwitchEvents.ListenToVideoPlayback(channel.Id);
         
         TwitchEvents.SendTopics(AccessToken);
         
@@ -227,7 +237,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         TwitchEvents.OnStreamDown -= channel.OnStreamDown;
         TwitchEvents.OnViewCount -= channel.OnViewCount;
         
-        TwitchEvents.ListenToVideoPlayback(channel.BroadcasterId);
+        TwitchEvents.ListenToVideoPlayback(channel.Id);
         
         TwitchEvents.SendTopics(AccessToken, true);
         
@@ -247,8 +257,6 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     
     public void StartRaid(string from, string to)
     {
-        // TODO: Also check, if the logged in user is live
-        
         TwitchApi.Helix.Raids.StartRaidAsync(from, to);
         IsRaidStarted = true;
     }
@@ -299,24 +307,65 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         Tools.OpenUrl(url);
     }
 
-    private void OnUserRaidUpdate(object? sender, OnRaidUpdateV2Args e)
+    // TODO Not called while raid is ongoing
+    private void OnUserRaidUpdate(object? sender, OnRaidUpdateArgs e)
     {
+        //if (e.ChannelId != UserChannel?.BroadcasterId)
+        //    return;
         
+        RaidParticipants = e.ViewerCount;
+        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Raid participants: {RaidParticipants}");
+    }
+
+    private void OnViewCount(object? sender, OnViewCountArgs e)
+    {
+        if (UserChannel == null)
+            return;
+        
+        if (e.ChannelId != UserChannel.Id)
+            return;
+        
+        UserChannel.OnViewCount(sender, e);
     }
 
     private void OnUserRaidGo(object? sender, OnRaidGoArgs e)
     {
+        if (e.ChannelId != UserChannel?.Id)
+            return;
+
+        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Raid started.");
+        
         IsRaidStarted = false;
     }
 
     private void OnUserStreamDown(object? sender, OnStreamDownArgs e)
     {
+        if (UserChannel == null)
+            return;
+        
+        if (e.ChannelId != UserChannel?.Id)
+            return;
+
+        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Stream down.");
+        
         IsRaidStarted = false;
+        
+        UserChannel.IsLive = false;
     }
 
     private void OnUserStreamUp(object? sender, OnStreamUpArgs e)
     {
+        if (UserChannel == null)
+            return;
+        
+        if (e.ChannelId != UserChannel?.Id)
+            return;
+        
+        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Stream up.");
+        
         IsRaidStarted = false;
+        
+        UserChannel.IsLive = true;
     }
 
     public event PropertyChangingEventHandler? PropertyChanging;
