@@ -115,7 +115,7 @@
                                          IsScrollInertiaEnabled="True" />
             </ScrollViewer.GestureRecognizers>
 
-            <ListBox ItemsSource="{Binding FilteredChannels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+            <ListBox Items="{Binding Channels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                      SelectionMode="Single"
                      SelectionChanged="SelectingItemsControl_OnSelectionChanged">
                 
