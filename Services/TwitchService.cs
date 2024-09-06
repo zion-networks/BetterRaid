@@ -6,6 +6,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BetterRaid.Misc;
 using BetterRaid.Models;
+using Microsoft.Extensions.Logging;
 using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
 using TwitchLib.PubSub;
@@ -40,8 +41,9 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     private bool _isRaidStarted;
     private int _raidParticipants;
     private TwitchChannel? _userChannel;
-    private readonly List<TwitchChannel> _registeredChannels;
     private User? _user;
+    private readonly ILogger<TwitchService> _logger;
+    private readonly IWebToolsService _webTools;
 
     public string AccessToken { get; private set; } = string.Empty;
     
@@ -80,46 +82,46 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         set => SetField(ref _raidParticipants, value);
     }
 
-    public TwitchService()
+    public TwitchService(ILogger<TwitchService> logger, IWebToolsService webTools)
     {
-        _registeredChannels = [];
+        _logger = logger;
+        _webTools = webTools;
         
         TwitchApi = new TwitchAPI();
         TwitchEvents = new TwitchPubSub();
         
         if (TryLoadAccessToken(out var token))
         {
-            Console.WriteLine($"[INFO][{nameof(TwitchService)}] Found access token.");
+            _logger.LogInformation("Found access token.");
             Task.Run(() => ConnectApiAsync(Constants.TwitchClientId, token))
-                .ContinueWith(_ => ConnectTwitchEvents(token));
+                .ContinueWith(_ => ConnectTwitchEvents());
         }
         else
         {
-            Console.WriteLine($"[INFO][{nameof(TwitchService)}] No access token found.");
+            _logger.LogInformation("No access token found.");
         }
     }
 
-    private async Task ConnectTwitchEvents(string token)
+    private async Task ConnectTwitchEvents()
     {
         if (UserChannel == null || User == null)
             return;
 
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connecting to Twitch Events ...");
+        _logger.LogInformation("Connecting to Twitch Events ...");
 
         TwitchEvents.OnRaidGo += OnUserRaidGo;
         TwitchEvents.OnRaidUpdate += OnUserRaidUpdate;
         TwitchEvents.OnStreamUp += OnUserStreamUp;
         TwitchEvents.OnStreamDown += OnUserStreamDown;
         TwitchEvents.OnViewCount += OnViewCount;
-        TwitchEvents.OnLog += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] {args.Data}");
-        TwitchEvents.OnPubSubServiceError += (sender, args) => Console.WriteLine($"[ERROR][{nameof(TwitchService)}] {args.Exception.Message}");
-        TwitchEvents.OnPubSubServiceConnected += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connected to Twitch PubSub.");
-        TwitchEvents.OnPubSubServiceClosed += (sender, args) => Console.WriteLine($"[INFO][{nameof(TwitchService)}] Disconnected from Twitch PubSub.");
+        TwitchEvents.OnLog += OnPubSubLog;
+        TwitchEvents.OnPubSubServiceError += OnPubSubServiceError;
+        TwitchEvents.OnPubSubServiceConnected += OnPubSubServiceConnected;
+        TwitchEvents.OnPubSubServiceClosed += OnPubSubServiceClosed;
         
         TwitchEvents.ListenToVideoPlayback(UserChannel.BroadcasterId);
         TwitchEvents.ListenToRaid(UserChannel.BroadcasterId);
         
-        TwitchEvents.SendTopics(token);
         TwitchEvents.Connect();
         
         await Task.CompletedTask;
@@ -127,7 +129,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
 
     public async Task ConnectApiAsync(string clientId, string accessToken)
     {
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connecting to Twitch API ...");
+        _logger.LogInformation("Connecting to Twitch API ...");
         
         AccessToken = accessToken;
         
@@ -142,24 +144,24 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         {
             User = null;
             
-            Console.WriteLine($"[ERROR][{nameof(TwitchService)}] Could not get user.");
+            _logger.LogError("Could not get user with client id {clientId} - please check your clientId and accessToken", clientId);
         }
 
         if (TryGetUserChannel(out var channel))
         {
             UserChannel = channel;
-            Console.WriteLine($"[INFO][{nameof(TwitchService)}] Connected to Twitch API as {channel?.Name}.");
+            _logger.LogInformation("Connected to Twitch API as {channelName} with broadcaster id {channelBroadcasterId}.", channel?.Name, channel?.BroadcasterId);
         }
         else
         {
             UserChannel = null;
             
-            Console.WriteLine($"[ERROR][{nameof(TwitchService)}] Could not get user channel.");
+            _logger.LogError("Could not get user channel.");
         }
         
         if (User == null || UserChannel == null)
         {
-            Console.WriteLine($"[ERROR][{nameof(TwitchService)}] Could not connect to Twitch API.");
+            _logger.LogError("Could not connect to Twitch API.");
         }
         
         await Task.CompletedTask;
@@ -199,7 +201,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         }
         catch (Exception e)
         {
-            Console.WriteLine($"[ERROR][{nameof(TwitchService)}] {e.Message}");
+            _logger.LogError(e, "Could not get user.");
             return false;
         }
     }
@@ -218,7 +220,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
 
     public void RegisterForEvents(TwitchChannel channel)
     {
-        Console.WriteLine($"[DEBUG][{nameof(TwitchService)}] Registering for events for {channel.Name} ...");
+        _logger.LogDebug("Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...", channel.Name, channel.BroadcasterId);
         
         TwitchEvents.OnStreamUp += channel.OnStreamUp;
         TwitchEvents.OnStreamDown += channel.OnStreamDown;
@@ -227,12 +229,12 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         TwitchEvents.ListenToVideoPlayback(channel.Id);
         
         TwitchEvents.SendTopics(AccessToken);
-        
-        _registeredChannels.Add(channel);
     }
     
     public void UnregisterFromEvents(TwitchChannel channel)
     {
+        _logger.LogDebug("Unregistering from events for {channelName} with broadcaster id {channelBroadcasterId} ...", channel.Name, channel.BroadcasterId);
+        
         TwitchEvents.OnStreamUp -= channel.OnStreamUp;
         TwitchEvents.OnStreamDown -= channel.OnStreamDown;
         TwitchEvents.OnViewCount -= channel.OnViewCount;
@@ -240,8 +242,6 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         TwitchEvents.ListenToVideoPlayback(channel.Id);
         
         TwitchEvents.SendTopics(AccessToken, true);
-        
-        _registeredChannels.Remove(channel);
     }
 
     public string GetOAuthUrl()
@@ -304,7 +304,28 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         
         var url = $"https://twitch.tv/{channelName}";
         
-        Tools.OpenUrl(url);
+        _webTools.OpenUrl(url);
+    }
+
+    private void OnPubSubServiceClosed(object? sender, EventArgs e)
+    {
+        _logger.LogWarning("PubSub: Connection closed.");
+    }
+
+    private void OnPubSubServiceError(object? sender, OnPubSubServiceErrorArgs e)
+    {
+        _logger.LogError(e.Exception, "PubSub: {exception}", e.Exception);
+    }
+
+    private void OnPubSubLog(object? sender, OnLogArgs e)
+    {
+        _logger.LogInformation("PubSub: {data}", e.Data);
+    }
+
+    private void OnPubSubServiceConnected(object? sender, EventArgs e)
+    {
+        TwitchEvents.SendTopics(AccessToken);
+        _logger.LogInformation("PubSub: Connected.");
     }
 
     // TODO Not called while raid is ongoing
@@ -314,7 +335,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         //    return;
         
         RaidParticipants = e.ViewerCount;
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Raid participants: {RaidParticipants}");
+        _logger.LogInformation("Raid participants: {participants}", RaidParticipants);
     }
 
     private void OnViewCount(object? sender, OnViewCountArgs e)
@@ -333,7 +354,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (e.ChannelId != UserChannel?.Id)
             return;
 
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Raid started.");
+        _logger.LogInformation("Raid started.");
         
         IsRaidStarted = false;
     }
@@ -346,7 +367,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (e.ChannelId != UserChannel?.Id)
             return;
 
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Stream down.");
+        _logger.LogInformation("Stream down.");
         
         IsRaidStarted = false;
         
@@ -361,10 +382,9 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (e.ChannelId != UserChannel?.Id)
             return;
         
-        Console.WriteLine($"[INFO][{nameof(TwitchService)}] Stream up.");
+        _logger.LogInformation("Stream up.");
         
         IsRaidStarted = false;
-        
         UserChannel.IsLive = true;
     }
 

@@ -3,12 +3,15 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using BetterRaid.Services;
+using Newtonsoft.Json;
 using TwitchLib.PubSub.Events;
 
 namespace BetterRaid.Models;
 
+[JsonObject]
 public class TwitchChannel : INotifyPropertyChanged
 {
+    private string? _id;
     private string? _broadcasterId;
     private string? _viewerCount;
     private bool _isLive;
@@ -18,7 +21,6 @@ public class TwitchChannel : INotifyPropertyChanged
     private string? _category;
     private string? _title;
     private DateTime? _lastRaided;
-    private string? _id;
 
     public string? Id
     {
@@ -59,6 +61,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
+    [JsonIgnore]
     public bool IsLive
     {
         get => _isLive;
@@ -72,6 +75,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
+    [JsonIgnore]
     public string? ViewerCount
     {
         get => _viewerCount;
@@ -111,6 +115,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
 
+    [JsonIgnore]
     public string? Category
     {
         get => _category;
@@ -124,6 +129,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
+    [JsonIgnore]
     public string? Title
     {
         get => _title;

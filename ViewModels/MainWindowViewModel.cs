@@ -10,27 +10,24 @@ using BetterRaid.Misc;
 using BetterRaid.Models;
 using BetterRaid.Services;
 using BetterRaid.Views;
+using Microsoft.Extensions.Logging;
 
 namespace BetterRaid.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private string? _filter;
     private ObservableCollection<TwitchChannel> _channels = [];
-    private readonly BetterRaidDatabase? _db;
-    private readonly ISynchronizaionService _synchronizaionService;
-
-    public BetterRaidDatabase? Database
-    {
-        get => _db;
-        private init
-        {
-            if (SetProperty(ref _db, value) && _db != null)
-            {
-                LoadChannelsFromDb();
-            }
-        }
-    }
+    
+    private readonly ISynchronizaionService _synchronizationService;
+    private readonly ILogger<MainWindowViewModel> _logger;
+    private readonly IWebToolsService _webTools;
+    private readonly IDatabaseService _db;
+    private readonly ITwitchService _twitch;
+    
+    private string? _filter;
+    private bool _onlyOnline;
+    
+    public ITwitchService Twitch => _twitch;
 
     public ObservableCollection<TwitchChannel> Channels
     {
@@ -40,25 +37,36 @@ public class MainWindowViewModel : ViewModelBase
 
     public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
 
-    public ITwitchService Twitch { get; }
-
     public string? Filter
     {
         get => _filter;
         set => SetProperty(ref _filter, value);
     }
-
-    public bool IsLoggedIn => Twitch.UserChannel != null;
-
-    public MainWindowViewModel(ITwitchService twitch, ISynchronizaionService synchronizaionService)
+    
+    public bool OnlyOnline
     {
-        _synchronizaionService = synchronizaionService;
-        
-        Twitch = twitch;
-        Twitch.PropertyChanged += OnTwitchPropertyChanged;
+        get => _db.OnlyOnline;
+        set => SetProperty(ref _onlyOnline, value);
+    }
 
-        Database = BetterRaidDatabase.LoadFromFile(Constants.DatabaseFilePath);
-        Database.PropertyChanged += OnDatabasePropertyChanged;
+    public bool IsLoggedIn => _twitch.UserChannel != null;
+
+    public MainWindowViewModel(
+        ILogger<MainWindowViewModel> logger,
+        ITwitchService twitch,
+        IWebToolsService webTools,
+        IDatabaseService db,
+        ISynchronizaionService synchronizationService)
+    {
+        _logger = logger;
+        _twitch = twitch;
+        _webTools = webTools;
+        _db = db;
+        _synchronizationService = synchronizationService;
+        
+        _twitch.PropertyChanged += OnTwitchPropertyChanged;
+        
+        LoadChannelsFromDb();
     }
 
     public void ExitApplication()
@@ -76,7 +84,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoginWithTwitch()
     {
-        Tools.StartOAuthLogin(Twitch, OnTwitchLoginCallback, CancellationToken.None);
+        _webTools.StartOAuthLogin(_twitch, OnTwitchLoginCallback, CancellationToken.None);
     }
 
     private void OnTwitchLoginCallback()
@@ -86,28 +94,25 @@ public class MainWindowViewModel : ViewModelBase
 
     private void LoadChannelsFromDb()
     {
-        if (_db == null)
+        if (_db.Database == null)
         {
+            _logger.LogError("Database is null");
             return;
         }
-
+        
         foreach (var channel in Channels)
         {
-            Twitch.UnregisterFromEvents(channel);
+            _twitch.UnregisterFromEvents(channel);
         }
 
         Channels.Clear();
 
-        var channels = _db.Channels
-            .Select(channelName => new TwitchChannel(channelName))
-            .ToList();
-
-        foreach (var channel in channels)
+        foreach (var channel in _db.Database.Channels)
         {
             Task.Run(() =>
             {
-                channel.UpdateChannelData(Twitch);
-                Twitch.RegisterForEvents(channel);
+                channel.UpdateChannelData(_twitch);
+                _twitch.RegisterForEvents(channel);
             });
 
             Channels.Add(channel);
@@ -117,7 +122,7 @@ public class MainWindowViewModel : ViewModelBase
     private ObservableCollection<TwitchChannel> GetFilteredChannels()
     {
         var filteredChannels = Channels
-            .Where(channel => Database?.OnlyOnline == false || channel.IsLive)
+            .Where(channel => OnlyOnline == false || channel.IsLive)
             .Where(channel => string.IsNullOrWhiteSpace(Filter) || channel.Name?.Contains(Filter, StringComparison.OrdinalIgnoreCase) == true)
             .ToList();
 
@@ -126,7 +131,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private void OnTwitchPropertyChanged(object? sender, PropertyChangedEventArgs e)
     {
-        if (e.PropertyName != nameof(Twitch.UserChannel))
+        if (e.PropertyName != nameof(_twitch.UserChannel))
             return;
 
         OnPropertyChanged(nameof(IsLoggedIn));
@@ -140,13 +145,5 @@ public class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(FilteredChannels));
         }
-    }
-
-    private void OnDatabasePropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName != nameof(BetterRaidDatabase.OnlyOnline))
-            return;
-
-        OnPropertyChanged(nameof(FilteredChannels));
     }
 }

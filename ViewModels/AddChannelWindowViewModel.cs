@@ -1,11 +1,12 @@
 using System;
+using Microsoft.Extensions.Logging;
 
 namespace BetterRaid.ViewModels;
 
 public class AddChannelWindowViewModel : ViewModelBase
 {
-    public AddChannelWindowViewModel()
+    public AddChannelWindowViewModel(ILogger<AddChannelWindowViewModel> logger)
     {
-        Console.WriteLine("[DEBUG] AddChannelWindowViewModel created");
+        logger.LogDebug("AddChannelWindowViewModel created");
     }
 }

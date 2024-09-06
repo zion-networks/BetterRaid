@@ -2,7 +2,7 @@
 
 namespace BetterRaid.Services.Implementations;
 
-public class MainWindowViewModelFactory : IMainViewModelFactory
+public class MainWindowViewModelFactory// : IMainViewModelFactory
 {
     private readonly ITwitchService _twitchService;
     private readonly ISynchronizaionService _synchronizaionService;
@@ -13,8 +13,8 @@ public class MainWindowViewModelFactory : IMainViewModelFactory
         _synchronizaionService = synchronizaionService;
     }
 
-    public MainWindowViewModel CreateMainWindowViewModel()
-    {
-        return new MainWindowViewModel(_twitchService, _synchronizaionService);
-    }
+    //public MainWindowViewModel CreateMainWindowViewModel()
+    //{
+    //    return new MainWindowViewModel(_twitchService, _synchronizaionService);
+    //}
 }

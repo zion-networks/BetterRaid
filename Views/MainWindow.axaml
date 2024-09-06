@@ -59,7 +59,7 @@
                     Spacing="5">
 
             <CheckBox Content="Only Online"
-                      IsChecked="{Binding Database.OnlyOnline, Mode=TwoWay, FallbackValue=False}" />
+                      IsChecked="{Binding OnlyOnline, Mode=TwoWay, FallbackValue=False}" />
 
             <TextBox Width="200"
                      Margin="5, 10, 5, 10"

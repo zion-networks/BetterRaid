@@ -6,16 +6,29 @@ using System.Text;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
-using BetterRaid.Services;
+using BetterRaid.Misc;
+using Microsoft.Extensions.Logging;
 
-namespace BetterRaid.Misc;
+namespace BetterRaid.Services;
 
-public static class Tools
+public interface IWebToolsService
 {
-    private static HttpListener? _oauthListener;
+    void StartOAuthLogin(ITwitchService twitch, Action? callback = null, CancellationToken token = default);
+    void OpenUrl(string url);
+}
+
+public class WebToolsService : IWebToolsService
+{
+    private HttpListener? _oauthListener;
+    private readonly ILogger<WebToolsService> _logger;
+
+    public WebToolsService(ILogger<WebToolsService> logger)
+    {
+        _logger = logger;
+    }
 
     // Source: https://stackoverflow.com/a/43232486
-    public static void StartOAuthLogin(ITwitchService twitchService,  Action? callback = null, CancellationToken token = default)
+    public void StartOAuthLogin(ITwitchService twitch, Action? callback = null, CancellationToken token = default)
     {
         if (_oauthListener == null)
         {
@@ -23,13 +36,13 @@ public static class Tools
             _oauthListener.Prefixes.Add(Constants.TwitchOAuthRedirectUrl + "/");
             _oauthListener.Start();
 
-            Task.Run(() => WaitForCallback(callback, token, twitchService), token);
+            Task.Run(() => WaitForCallback(twitch, callback, token), token);
         }
 
-        OpenUrl(twitchService.GetOAuthUrl());
+        OpenUrl(twitch.GetOAuthUrl());
     }
 
-    private static async Task WaitForCallback(Action? callback, CancellationToken token, ITwitchService twitchService)
+    private async Task WaitForCallback(ITwitchService twitch, Action? callback, CancellationToken token)
     {
         if (_oauthListener == null)
             return;
@@ -37,7 +50,7 @@ public static class Tools
         if (token.IsCancellationRequested)
             return;
 
-        Console.WriteLine("Starting token listener");
+        _logger.LogDebug("Starting token listener");
 
         while (!token.IsCancellationRequested)
         {
@@ -48,7 +61,7 @@ public static class Tools
             if (req.Url == null)
                 continue;
 
-            Console.WriteLine("{0} {1}", req.HttpMethod, req.Url);
+            _logger.LogDebug("{method} {url}", req.HttpMethod, req.Url);
 
             // Response, that may contain the access token as fragment
             // It must be extracted client-side in browser
@@ -64,7 +77,7 @@ public static class Tools
 
                 req.InputStream.Close();
 
-                Console.WriteLine(data.ToString());
+                _logger.LogTrace("{data}", data);
 
                 res.StatusCode = 200;
                 await res.OutputStream.WriteAsync(Encoding.UTF8.GetBytes(OAUTH_CLIENT_DOCUMENT).AsMemory(0, OAUTH_CLIENT_DOCUMENT.Length), token);
@@ -88,8 +101,8 @@ public static class Tools
 
                 if (jsonData == null)
                 {
-                    Console.WriteLine("[ERROR] Failed to parse JSON data:");
-                    Console.WriteLine(json);
+                    _logger.LogError("Failed to parse JSON data:");
+                    _logger.LogError("{json}", json);
                     
                     res.StatusCode = 400;
                     res.Close();
@@ -98,21 +111,21 @@ public static class Tools
 
                 if (jsonData["access_token"] == null)
                 {
-                    Console.WriteLine("[ERROR] Missing access_token in JSON data.");
+                    _logger.LogError("Missing access_token in JSON data.");
                     
                     res.StatusCode = 400;
                     res.Close();
                     continue;
                 }
 
-                var accessToken = jsonData["access_token"]?.ToString();
+                var accessToken = jsonData["access_token"]?.ToString()!;
                 
-                twitchService.ConnectApiAsync(Constants.TwitchClientId, accessToken!);                
+                await twitch.ConnectApiAsync(Constants.TwitchClientId, accessToken);
 
                 res.StatusCode = 200;
                 res.Close();
 
-                Console.WriteLine("[INFO] Received access token!");
+                _logger.LogInformation("Received access token!");
 
                 callback?.Invoke();
 
@@ -122,7 +135,7 @@ public static class Tools
         }
     }
 
-    public static void OpenUrl(string url)
+    public void OpenUrl(string url)
     {
         try
         {
