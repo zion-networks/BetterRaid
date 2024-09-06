@@ -1,6 +1,5 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.ComponentModel;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -10,14 +9,12 @@ using BetterRaid.Models;
 using BetterRaid.Services;
 using BetterRaid.Views;
 using Microsoft.Extensions.Logging;
-using TwitchLib.PubSub.Events;
 
 namespace BetterRaid.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
     private ObservableCollection<TwitchChannel> _channels = [];
-    
     private readonly ISynchronizaionService _synchronizationService;
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly IWebToolsService _webTools;
@@ -35,18 +32,24 @@ public class MainWindowViewModel : ViewModelBase
         set => SetProperty(ref _channels, value);
     }
 
-    public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
-
     public string? Filter
     {
         get => _filter;
-        set => SetProperty(ref _filter, value);
+        set
+        {
+            SetProperty(ref _filter, value);
+            LoadChannelsFromDb();
+        }
     }
-    
+
     public bool OnlyOnline
     {
         get => _db.OnlyOnline;
-        set => SetProperty(ref _onlyOnline, value);
+        set
+        {
+            SetProperty(ref _onlyOnline, value);
+            LoadChannelsFromDb();
+        }
     }
 
     public bool IsLoggedIn => _twitch.UserChannel != null;
@@ -110,7 +113,9 @@ public class MainWindowViewModel : ViewModelBase
         
         var channels = _db.Database.Channels
             .ToList()
-            .OrderBy(c => c.IsLive)
+            .OrderByDescending(c => c.IsLive)
+            .Where(c => OnlyOnline && c.IsLive || !OnlyOnline)
+            .Where(c => string.IsNullOrWhiteSpace(Filter) || c.Name?.Contains(Filter, StringComparison.CurrentCultureIgnoreCase) == true)
             .ToList();
         
         foreach (var channel in channels)
@@ -122,26 +127,6 @@ public class MainWindowViewModel : ViewModelBase
             });
 
             Channels.Add(channel);
-        }
-    }
-
-    private ObservableCollection<TwitchChannel> GetFilteredChannels()
-    {
-        var filteredChannels = Channels
-            .Where(channel => OnlyOnline == false || channel.IsLive)
-            .Where(channel => string.IsNullOrWhiteSpace(Filter) || channel.Name?.Contains(Filter, StringComparison.OrdinalIgnoreCase) == true)
-            .ToList();
-
-        return new ObservableCollection<TwitchChannel>(filteredChannels);
-    }
-
-    protected override void OnPropertyChanged(PropertyChangedEventArgs e)
-    {
-        base.OnPropertyChanged(e);
-
-        if (e.PropertyName == nameof(Filter))
-        {
-            OnPropertyChanged(nameof(FilteredChannels));
         }
     }
 
