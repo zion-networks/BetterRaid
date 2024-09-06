@@ -9,6 +9,7 @@ using BetterRaid.Models;
 using BetterRaid.Services;
 using BetterRaid.Views;
 using Microsoft.Extensions.Logging;
+using ReactiveUI;
 
 namespace BetterRaid.ViewModels;
 
@@ -29,15 +30,17 @@ public class MainWindowViewModel : ViewModelBase
     public ObservableCollection<TwitchChannel> Channels
     {
         get => _channels;
-        set => SetProperty(ref _channels, value);
+        set => this.RaiseAndSetIfChanged(ref _channels, value);
     }
+    
+    public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
 
     public string? Filter
     {
         get => _filter;
         set
         {
-            SetProperty(ref _filter, value);
+            this.RaiseAndSetIfChanged(ref _filter, value);
             LoadChannelsFromDb();
         }
     }
@@ -47,7 +50,7 @@ public class MainWindowViewModel : ViewModelBase
         get => _db.OnlyOnline;
         set
         {
-            SetProperty(ref _onlyOnline, value);
+            this.RaiseAndSetIfChanged(ref _onlyOnline, value);
             LoadChannelsFromDb();
         }
     }
@@ -93,7 +96,7 @@ public class MainWindowViewModel : ViewModelBase
 
     private void OnTwitchLoginCallback()
     {
-        OnPropertyChanged(nameof(IsLoggedIn));
+        this.RaisePropertyChanged(nameof(IsLoggedIn));
     }
 
     private void LoadChannelsFromDb()
@@ -112,10 +115,10 @@ public class MainWindowViewModel : ViewModelBase
         Channels.Clear();
         
         var channels = _db.Database.Channels
-            .ToList()
-            .OrderByDescending(c => c.IsLive)
-            .Where(c => OnlyOnline && c.IsLive || !OnlyOnline)
-            .Where(c => string.IsNullOrWhiteSpace(Filter) || c.Name?.Contains(Filter, StringComparison.CurrentCultureIgnoreCase) == true)
+            //.ToList()
+            //.OrderByDescending(c => c.IsLive)
+            //.Where(c => OnlyOnline && c.IsLive || !OnlyOnline)
+            //.Where(c => string.IsNullOrWhiteSpace(Filter) || c.Name?.Contains(Filter, StringComparison.CurrentCultureIgnoreCase) == true)
             .ToList();
         
         foreach (var channel in channels)
@@ -137,6 +140,16 @@ public class MainWindowViewModel : ViewModelBase
 
     private void OnUserLoginChanged(object? sender, EventArgs e)
     {
-        OnPropertyChanged(nameof(IsLoggedIn));
+        this.RaisePropertyChanged(nameof(IsLoggedIn));
+    }
+    
+    private ObservableCollection<TwitchChannel> GetFilteredChannels()
+    {
+        var filteredChannels = Channels
+            .Where(channel => OnlyOnline == false || channel.IsLive)
+            .Where(channel => string.IsNullOrWhiteSpace(Filter) || channel.Name?.Contains(Filter, StringComparison.OrdinalIgnoreCase) == true)
+            .ToList();
+
+        return new ObservableCollection<TwitchChannel>(filteredChannels);
     }
 }
