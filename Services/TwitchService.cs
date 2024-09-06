@@ -32,6 +32,8 @@ public interface ITwitchService
     public void RegisterForEvents(TwitchChannel channel);
     public void UnregisterFromEvents(TwitchChannel channel);
     
+    public event EventHandler<EventArgs>? UserLoginChanged;
+    public event EventHandler<TwitchChannel>? TwitchChannelUpdated;
     public event PropertyChangingEventHandler? PropertyChanging;
     public event PropertyChangedEventHandler? PropertyChanged;
 }
@@ -70,6 +72,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
             SetField(ref _userChannel, value);
 
             _userChannel?.UpdateChannelData(this);
+            OnOnUserLoginChanged();
         }
     }
 
@@ -80,6 +83,21 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     {
         get => _raidParticipants;
         set => SetField(ref _raidParticipants, value);
+    }
+
+    public event EventHandler<EventArgs>? UserLoginChanged;
+    public event EventHandler<TwitchChannel>? TwitchChannelUpdated;
+
+    public event EventHandler<OnStreamDownArgs> OnStreamDown
+    {
+        add => TwitchEvents.OnStreamDown += value;
+        remove => TwitchEvents.OnStreamDown -= value;
+    }
+    
+    public event EventHandler<OnStreamUpArgs> OnStreamUp
+    {
+        add => TwitchEvents.OnStreamUp += value;
+        remove => TwitchEvents.OnStreamUp -= value;
     }
 
     public TwitchService(ILogger<TwitchService> logger, IWebToolsService webTools)
@@ -221,6 +239,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     public void RegisterForEvents(TwitchChannel channel)
     {
         _logger.LogDebug("Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...", channel.Name, channel.BroadcasterId);
+
+        channel.PropertyChanged += OnTwitchChannelUpdated;
         
         TwitchEvents.OnStreamUp += channel.OnStreamUp;
         TwitchEvents.OnStreamDown += channel.OnStreamDown;
@@ -230,10 +250,12 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         
         TwitchEvents.SendTopics(AccessToken);
     }
-    
+
     public void UnregisterFromEvents(TwitchChannel channel)
     {
         _logger.LogDebug("Unregistering from events for {channelName} with broadcaster id {channelBroadcasterId} ...", channel.Name, channel.BroadcasterId);
+        
+        channel.PropertyChanged -= OnTwitchChannelUpdated;
         
         TwitchEvents.OnStreamUp -= channel.OnStreamUp;
         TwitchEvents.OnStreamDown -= channel.OnStreamDown;
@@ -388,6 +410,17 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         UserChannel.IsLive = true;
     }
 
+    private void OnTwitchChannelUpdated(object? sender, PropertyChangedEventArgs e)
+    {
+        if (sender is not TwitchChannel channel)
+            return;
+        
+        if (e.PropertyName != nameof(TwitchChannel.IsLive))
+            return;
+        
+        TwitchChannelUpdated?.Invoke(this, channel);
+    }
+
     public event PropertyChangingEventHandler? PropertyChanging;
     public event PropertyChangedEventHandler? PropertyChanged;
 
@@ -413,4 +446,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         return true;
     }
 
+    private void OnOnUserLoginChanged()
+    {
+        UserLoginChanged?.Invoke(this, EventArgs.Empty);
+    }
 }

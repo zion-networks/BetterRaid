@@ -6,11 +6,11 @@ using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
 using BetterRaid.Extensions;
-using BetterRaid.Misc;
 using BetterRaid.Models;
 using BetterRaid.Services;
 using BetterRaid.Views;
 using Microsoft.Extensions.Logging;
+using TwitchLib.PubSub.Events;
 
 namespace BetterRaid.ViewModels;
 
@@ -64,7 +64,8 @@ public class MainWindowViewModel : ViewModelBase
         _db = db;
         _synchronizationService = synchronizationService;
         
-        _twitch.PropertyChanged += OnTwitchPropertyChanged;
+        _twitch.UserLoginChanged += OnUserLoginChanged;
+        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
         
         LoadChannelsFromDb();
     }
@@ -106,8 +107,13 @@ public class MainWindowViewModel : ViewModelBase
         }
 
         Channels.Clear();
-
-        foreach (var channel in _db.Database.Channels)
+        
+        var channels = _db.Database.Channels
+            .ToList()
+            .OrderBy(c => c.IsLive)
+            .ToList();
+        
+        foreach (var channel in channels)
         {
             Task.Run(() =>
             {
@@ -129,14 +135,6 @@ public class MainWindowViewModel : ViewModelBase
         return new ObservableCollection<TwitchChannel>(filteredChannels);
     }
 
-    private void OnTwitchPropertyChanged(object? sender, PropertyChangedEventArgs e)
-    {
-        if (e.PropertyName != nameof(_twitch.UserChannel))
-            return;
-
-        OnPropertyChanged(nameof(IsLoggedIn));
-    }
-
     protected override void OnPropertyChanged(PropertyChangedEventArgs e)
     {
         base.OnPropertyChanged(e);
@@ -145,5 +143,15 @@ public class MainWindowViewModel : ViewModelBase
         {
             OnPropertyChanged(nameof(FilteredChannels));
         }
+    }
+
+    private void OnTwitchChannelUpdated(object? sender, TwitchChannel channel)
+    {
+        LoadChannelsFromDb();
+    }
+
+    private void OnUserLoginChanged(object? sender, EventArgs e)
+    {
+        OnPropertyChanged(nameof(IsLoggedIn));
     }
 }
