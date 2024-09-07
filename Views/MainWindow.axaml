@@ -115,7 +115,7 @@
                                          IsScrollInertiaEnabled="True" />
             </ScrollViewer.GestureRecognizers>
 
-            <!--<ListBox Items="{Binding FilteredChannels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+            <ListBox ItemsSource="{Binding FilteredChannels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                      SelectionMode="Single"
                      SelectionChanged="SelectingItemsControl_OnSelectionChanged">
                 
@@ -240,7 +240,7 @@
                         </Grid>
                     </DataTemplate>
                 </ListBox.ItemTemplate>
-            </ListBox>-->
+            </ListBox>
 
         </ScrollViewer>
 

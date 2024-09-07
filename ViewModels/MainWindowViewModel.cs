@@ -1,6 +1,6 @@
 ﻿using System;
 using System.Collections.ObjectModel;
-using System.Linq;
+using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Avalonia.Controls;
@@ -8,6 +8,8 @@ using BetterRaid.Extensions;
 using BetterRaid.Models;
 using BetterRaid.Services;
 using BetterRaid.Views;
+using DynamicData;
+using DynamicData.Binding;
 using Microsoft.Extensions.Logging;
 using ReactiveUI;
 
@@ -15,43 +17,55 @@ namespace BetterRaid.ViewModels;
 
 public class MainWindowViewModel : ViewModelBase
 {
-    private ObservableCollection<TwitchChannel> _channels = [];
+    private readonly SourceList<TwitchChannel> _sourceList;
+
     private readonly ISynchronizaionService _synchronizationService;
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly IWebToolsService _webTools;
     private readonly IDatabaseService _db;
     private readonly ITwitchService _twitch;
-    
-    private string? _filter;
+
+    private string _filter;
     private bool _onlyOnline;
-    
+    private readonly ReadOnlyObservableCollection<TwitchChannel> _filteredChannels;
+
     public ITwitchService Twitch => _twitch;
 
-    public ObservableCollection<TwitchChannel> Channels
-    {
-        get => _channels;
-        set => this.RaiseAndSetIfChanged(ref _channels, value);
-    }
-    
-    public ObservableCollection<TwitchChannel> FilteredChannels => GetFilteredChannels();
+    public ReadOnlyObservableCollection<TwitchChannel> FilteredChannels => _filteredChannels;
 
-    public string? Filter
+    public string Filter
     {
         get => _filter;
         set
         {
             this.RaiseAndSetIfChanged(ref _filter, value);
-            LoadChannelsFromDb();
+            
+            _sourceList.Edit(innerList =>
+            {
+                if (_db.Database == null)
+                    return;
+                
+                innerList.Clear();
+                innerList.AddRange(_db.Database.Channels);
+            });
         }
     }
 
     public bool OnlyOnline
     {
-        get => _db.OnlyOnline;
+        get => _onlyOnline;
         set
         {
             this.RaiseAndSetIfChanged(ref _onlyOnline, value);
-            LoadChannelsFromDb();
+            
+            _sourceList.Edit(innerList =>
+            {
+                if (_db.Database == null)
+                    return;
+                
+                innerList.Clear();
+                innerList.AddRange(_db.Database.Channels);
+            });
         }
     }
 
@@ -69,10 +83,19 @@ public class MainWindowViewModel : ViewModelBase
         _webTools = webTools;
         _db = db;
         _synchronizationService = synchronizationService;
-        
+        _filter = string.Empty;
+
         _twitch.UserLoginChanged += OnUserLoginChanged;
-        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
-        
+
+        _sourceList = new SourceList<TwitchChannel>();
+        _sourceList.Connect()
+            .Filter(channel => channel.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+            .Filter(channel => !OnlyOnline || channel.IsLive)
+            .Sort(SortExpressionComparer<TwitchChannel>.Descending(channel => channel.IsLive))
+            .ObserveOn(RxApp.MainThreadScheduler)
+            .Bind(out _filteredChannels)
+            .Subscribe();
+
         LoadChannelsFromDb();
     }
 
@@ -106,50 +129,21 @@ public class MainWindowViewModel : ViewModelBase
             _logger.LogError("Database is null");
             return;
         }
-        
-        foreach (var channel in Channels)
-        {
-            _twitch.UnregisterFromEvents(channel);
-        }
 
-        Channels.Clear();
-        
-        var channels = _db.Database.Channels
-            //.ToList()
-            //.OrderByDescending(c => c.IsLive)
-            //.Where(c => OnlyOnline && c.IsLive || !OnlyOnline)
-            //.Where(c => string.IsNullOrWhiteSpace(Filter) || c.Name?.Contains(Filter, StringComparison.CurrentCultureIgnoreCase) == true)
-            .ToList();
-        
-        foreach (var channel in channels)
+        foreach (var channel in _db.Database.Channels)
         {
             Task.Run(() =>
             {
                 channel.UpdateChannelData(_twitch);
                 _twitch.RegisterForEvents(channel);
             });
-
-            Channels.Add(channel);
         }
-    }
-
-    private void OnTwitchChannelUpdated(object? sender, TwitchChannel channel)
-    {
-        LoadChannelsFromDb();
+        
+        _sourceList.Edit(innerList => innerList.AddRange(_db.Database.Channels));
     }
 
     private void OnUserLoginChanged(object? sender, EventArgs e)
     {
         this.RaisePropertyChanged(nameof(IsLoggedIn));
-    }
-    
-    private ObservableCollection<TwitchChannel> GetFilteredChannels()
-    {
-        var filteredChannels = Channels
-            .Where(channel => OnlyOnline == false || channel.IsLive)
-            .Where(channel => string.IsNullOrWhiteSpace(Filter) || channel.Name?.Contains(Filter, StringComparison.OrdinalIgnoreCase) == true)
-            .ToList();
-
-        return new ObservableCollection<TwitchChannel>(filteredChannels);
     }
 }

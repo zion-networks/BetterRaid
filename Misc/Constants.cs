@@ -3,7 +3,7 @@ using System.IO;
 
 namespace BetterRaid.Misc;
 
-public class Constants
+public static class Constants
 {
     // General
     public const string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
@@ -17,7 +17,7 @@ public class Constants
         _ => throw new PlatformNotSupportedException($"Your platform '{Environment.OSVersion.Platform}' is not supported. Please report this issue here: https://www.github.com/zion-networks/BetterRaid/issues")
     };
     public static string TwitchOAuthAccessTokenFilePath => Path.Combine(BetterRaidDataPath, ".access_token");
-    public static string DatabaseFilePath => Path.Combine(BetterRaidDataPath, "db.json");
+    public static string DatabaseFilePath => Path.Combine(BetterRaidDataPath, "brdb.json");
     
     // Twitch API
     public const string TwitchClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
