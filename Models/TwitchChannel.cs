@@ -1,24 +1,55 @@
+using System;
+using System.Collections.Generic;
 using System.ComponentModel;
+using System.Linq;
 using System.Runtime.CompilerServices;
-using Avalonia.Threading;
+using BetterRaid.Services;
+using Newtonsoft.Json;
+using TwitchLib.PubSub.Events;
 
 namespace BetterRaid.Models;
 
-public class TwitchChannel : INotifyPropertyChanged
+[JsonObject]
+public class TwitchChannel : INotifyPropertyChanged, IEqualityComparer<TwitchChannel>
 {
-    private string? _viewerCount;
+    private string? _id;
+    private string _name;
+    private string? _broadcasterId;
+    private int _viewerCount;
     private bool _isLive;
-    private string? _name;
     private string? _displayName;
     private string? _thumbnailUrl;
     private string? _category;
+    private string? _title;
+    private DateTime? _lastRaided;
+
+    public string? Id
+    {
+        get => _id;
+        set
+        {
+            if (value == _id)
+                return;
+            
+            _id = value;
+            OnPropertyChanged();
+        }
+    }
 
     public string? BroadcasterId
     {
-        get;
-        set;
+        get => _broadcasterId;
+        set
+        {
+            if (value == _broadcasterId)
+                return;
+
+            _broadcasterId = value;
+            OnPropertyChanged();
+        }
     }
-    public string? Name
+    
+    public string Name
     {
         get => _name;
         set
@@ -30,6 +61,8 @@ public class TwitchChannel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
+    
+    [JsonIgnore]
     public bool IsLive
     {
         get => _isLive;
@@ -42,7 +75,9 @@ public class TwitchChannel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
-    public string? ViewerCount
+    
+    [JsonIgnore]
+    public int ViewerCount
     {
         get => _viewerCount;
         set
@@ -81,6 +116,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
 
+    [JsonIgnore]
     public string? Category
     {
         get => _category;
@@ -93,10 +129,82 @@ public class TwitchChannel : INotifyPropertyChanged
             OnPropertyChanged();
         }
     }
-
-    public TwitchChannel(string channelName)
+    
+    [JsonIgnore]
+    public string? Title
     {
-        Name = channelName;
+        get => _title;
+        set
+        {
+            if (value == _title)
+                return;
+            
+            _title = value;
+            OnPropertyChanged();
+        }
+    }
+    
+    public DateTime? LastRaided
+    {
+        get => _lastRaided;
+        set
+        {
+            if (value == _lastRaided)
+                return;
+            
+            _lastRaided = value;
+            OnPropertyChanged();
+        }
+    }
+
+    public TwitchChannel(string? channelName)
+    {
+        _name = channelName ?? string.Empty;
+    }
+
+    public void UpdateChannelData(ITwitchService service)
+    {
+        var channel = service.TwitchApi.Helix.Search.SearchChannelsAsync(Name).Result.Channels
+            .FirstOrDefault(c => c.BroadcasterLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
+
+        if (channel == null)
+            return;
+        
+        var stream = service.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
+            .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
+
+        Id = channel.Id;
+        BroadcasterId = channel.Id;
+        DisplayName = channel.DisplayName;
+        ThumbnailUrl = channel.ThumbnailUrl;
+        Category = channel.GameName;
+        Title = channel.Title;
+        IsLive = channel.IsLive;
+        ViewerCount = stream?.ViewerCount ?? 0;
+    }
+
+    public void OnStreamUp(object? sender, OnStreamUpArgs args)
+    {
+        if (args.ChannelId != BroadcasterId)
+            return;
+        
+        IsLive = true;
+    }
+
+    public void OnStreamDown(object? sender, OnStreamDownArgs args)
+    {
+        if (args.ChannelId != BroadcasterId)
+            return;
+
+        IsLive = false;
+    }
+
+    public void OnViewCount(object? sender, OnViewCountArgs args)
+    {
+        if (args.ChannelId != BroadcasterId)
+            return;
+
+        ViewerCount = args.Viewers;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -104,5 +212,27 @@ public class TwitchChannel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public bool Equals(TwitchChannel? x, TwitchChannel? y)
+    {
+        if (ReferenceEquals(x, y))
+            return true;
+        
+        if (x is null)
+            return false;
+        
+        if (y is null)
+            return false;
+        
+        if (x.GetType() != y.GetType())
+            return false;
+        
+        return x._id == y._id;
+    }
+
+    public int GetHashCode(TwitchChannel obj)
+    {
+        return (obj._id != null ? obj._id.GetHashCode() : 0);
     }
 }

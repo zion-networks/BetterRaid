@@ -1,146 +1,122 @@
 using System;
-using System.IO;
-using System.Linq;
+using System.Threading.Tasks;
 using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Data.Core.Plugins;
 using Avalonia.Markup.Xaml;
+using Avalonia.Threading;
+using BetterRaid.Services;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
-using TwitchLib.Api;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 
 namespace BetterRaid;
 
-public partial class App : Application
+public class App : Application
 {
-    internal static TwitchAPI? TwitchApi = null;
-    internal static int AutoUpdateDelay = 10_000;
-    internal static bool HasUserZnSubbed = false;
-    internal static string BetterRaidDataPath = "";
-    internal static string TwitchBroadcasterId = "";
-    internal static string TwitchOAuthAccessToken = "";
-    internal static string TwitchOAuthAccessTokenFilePath = "";
-    internal static string TokenClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
-    internal static readonly string TwitchOAuthRedirectUrl = "http://localhost:9900";
-    internal static readonly string TwitchOAuthResponseType = "token";
-    internal static readonly string[] TwitchOAuthScopes = [
-        "channel:manage:raids",
-        "user:read:subscriptions"
-    ];
-    internal static readonly string TwitchOAuthUrl = $"https://id.twitch.tv/oauth2/authorize"
-                                                    + $"?client_id={TokenClientId}"
-                                                    + "&redirect_uri=http://localhost:9900"
-                                                    + $"&response_type={TwitchOAuthResponseType}"
-                                                    + $"&scope={string.Join("+", TwitchOAuthScopes)}";
+    private ServiceProvider? _serviceProvider;
+    private ILogger<App>? _logger;
 
     public override void Initialize()
     {
-        var userHomeDir = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile);
+        _serviceProvider = InitializeServices();
+        _logger = _serviceProvider.GetRequiredService<ILogger<App>>();
 
-        switch (Environment.OSVersion.Platform)
+        if (TryLoadDatabase() == false)
         {
-            case PlatformID.Win32NT:
-                BetterRaidDataPath = Path.Combine(userHomeDir, "AppData", "Roaming", "BetterRaid");
-                break;
-            case PlatformID.Unix:
-                BetterRaidDataPath = Path.Combine(userHomeDir, ".config", "BetterRaid");
-                break;
-            case PlatformID.MacOSX:
-                BetterRaidDataPath = Path.Combine(userHomeDir, "Library", "Application Support", "BetterRaid");
-                break;
+            _logger?.LogError("Failed to load or initialize database");
+            
+            Environment.Exit(1);
         }
 
-        if (!Directory.Exists(BetterRaidDataPath))
-            Directory.CreateDirectory(BetterRaidDataPath);
-
-        TwitchOAuthAccessTokenFilePath = Path.Combine(BetterRaidDataPath, ".access_token");
-
-        if (File.Exists(TwitchOAuthAccessTokenFilePath))
-        {
-            TwitchOAuthAccessToken = File.ReadAllText(TwitchOAuthAccessTokenFilePath);
-            InitTwitchClient();
-        }
-
-        AvaloniaXamlLoader.Load(this);
+        AvaloniaXamlLoader.Load(_serviceProvider, this);
     }
 
-    public static void InitTwitchClient(bool overrideToken = false)
+    private bool TryLoadDatabase()
     {
-        Console.WriteLine("[INFO] Initializing Twitch Client...");
-
-        TwitchApi = new TwitchAPI();
-        TwitchApi.Settings.ClientId = TokenClientId;
-        TwitchApi.Settings.AccessToken = TwitchOAuthAccessToken;
-
-        Console.WriteLine("[INFO] Testing Twitch API connection...");
-
-        var user = TwitchApi.Helix.Users.GetUsersAsync().Result.Users.FirstOrDefault();
-        if (user == null)
+        if (_serviceProvider == null)
         {
-            TwitchApi = null;
-            Console.WriteLine("[ERROR] Failed to connect to Twitch API!");
-            return;
-        }
-
-        var channel = TwitchApi.Helix.Search
-                        .SearchChannelsAsync(user.Login).Result.Channels
-                        .FirstOrDefault(c => c.BroadcasterLogin == user.Login);
-        
-        var userSubs = TwitchApi.Helix.Subscriptions.CheckUserSubscriptionAsync(
-            userId: user.Id,
-            broadcasterId: "1120558409"
-        ).Result.Data;
-
-        if (userSubs.Length > 0 && userSubs.Any(s => s.BroadcasterId == "1120558409"))
-        {
-            HasUserZnSubbed = true;
+            throw new FieldAccessException($"\"{nameof(_serviceProvider)}\" was null");
         }
         
-        if (channel == null)
+        var db = _serviceProvider.GetRequiredService<IDatabaseService>();
+
+        try
         {
-            Console.WriteLine("[ERROR] User channel could not be found!");
-            return;
+            db.LoadOrCreate();
+            Task.Run(db.UpdateLoadedChannels);
+
+            return true;
         }
-
-        TwitchBroadcasterId = channel.Id;
-        System.Console.WriteLine(TwitchBroadcasterId);
-
-        Console.WriteLine("[INFO] Connected to Twitch API as '{0}'!", user.DisplayName);
-
-        if (overrideToken)
+        catch (Exception e)
         {
-            File.WriteAllText(TwitchOAuthAccessTokenFilePath, TwitchOAuthAccessToken);
-
-            switch (Environment.OSVersion.Platform)
-            {
-                case PlatformID.Win32NT:
-                    File.SetAttributes(TwitchOAuthAccessTokenFilePath, File.GetAttributes(TwitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
-                    break;
-                case PlatformID.Unix:
-#pragma warning disable CA1416 // Validate platform compatibility
-                    File.SetUnixFileMode(TwitchOAuthAccessTokenFilePath, UnixFileMode.UserRead);
-#pragma warning restore CA1416 // Validate platform compatibility
-                    break;
-                case PlatformID.MacOSX:
-                    File.SetAttributes(TwitchOAuthAccessTokenFilePath, File.GetAttributes(TwitchOAuthAccessTokenFilePath) | FileAttributes.Hidden);
-                    break;
-            }
+            _logger?.LogError(e, "Failed to load database");
+            return false;
         }
+    }
+
+    private ServiceProvider InitializeServices()
+    {
+        var services = new ServiceCollection();
+        services.AddLogging(logging =>
+        {
+            logging.SetMinimumLevel(LogLevel.Information);
+            logging.AddConsole();
+        });
+        services.AddSingleton<ITwitchService, TwitchService>();
+        services.AddSingleton<IWebToolsService, WebToolsService>();
+        services.AddSingleton<IDatabaseService, DatabaseService>();
+        services.AddSingleton<IDispatcherService, DispatcherService>(_ => new DispatcherService(Dispatcher.UIThread));
+        services.AddTransient<MainWindowViewModel>();
+
+        return services.BuildServiceProvider();
     }
 
     public override void OnFrameworkInitializationCompleted()
     {
-        if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+        BindingPlugins.DataValidators.RemoveAt(0);
+
+        if(_serviceProvider == null)
         {
-            // Line below is needed to remove Avalonia data validation.
-            // Without this line you will get duplicate validations from both Avalonia and CT
-            BindingPlugins.DataValidators.RemoveAt(0);
-            desktop.MainWindow = new MainWindow
-            {
-                DataContext = new MainWindowViewModel(),
-            };
+            throw new FieldAccessException($"\"{nameof(_serviceProvider)}\" was null");
+        }
+
+        var mainWindow = new MainWindow
+        {
+            DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
+        };
+
+        switch (ApplicationLifetime)
+        {
+            case IClassicDesktopStyleApplicationLifetime desktop:
+                desktop.MainWindow = mainWindow;
+                desktop.Exit += OnDesktopOnExit;
+                break;
+
+            case ISingleViewApplicationLifetime singleViewPlatform:
+                singleViewPlatform.MainView = mainWindow;
+                break;
         }
 
         base.OnFrameworkInitializationCompleted();
+    }
+
+    private void OnDesktopOnExit(object? o, ControlledApplicationLifetimeExitEventArgs controlledApplicationLifetimeExitEventArgs)
+    {
+        if (_serviceProvider == null)
+        {
+            throw new FieldAccessException($"\"{nameof(_serviceProvider)}\" was null");
+        }
+        
+        try
+        {
+            var db = _serviceProvider.GetRequiredService<IDatabaseService>();
+            db.Save();
+        }
+        catch (Exception e)
+        {
+            _logger?.LogError(e, "Failed to save database");
+        }
     }
 }
