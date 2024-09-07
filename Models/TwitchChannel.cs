@@ -12,10 +12,10 @@ namespace BetterRaid.Models;
 public class TwitchChannel : INotifyPropertyChanged
 {
     private string? _id;
+    private string _name;
     private string? _broadcasterId;
     private string? _viewerCount;
     private bool _isLive;
-    private string? _name;
     private string? _displayName;
     private string? _thumbnailUrl;
     private string? _category;
@@ -48,7 +48,7 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
     
-    public string? Name
+    public string Name
     {
         get => _name;
         set
@@ -156,9 +156,9 @@ public class TwitchChannel : INotifyPropertyChanged
         }
     }
 
-    public TwitchChannel(string channelName)
+    public TwitchChannel(string? channelName)
     {
-        Name = channelName;
+        _name = channelName ?? string.Empty;
     }
 
     public void UpdateChannelData(ITwitchService service)
