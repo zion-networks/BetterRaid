@@ -121,6 +121,8 @@ public class WebToolsService : IWebToolsService
                 var accessToken = jsonData["access_token"]?.ToString()!;
                 
                 await twitch.ConnectApiAsync(Constants.TwitchClientId, accessToken);
+                twitch.SaveAccessToken();
+                
 
                 res.StatusCode = 200;
                 res.Close();

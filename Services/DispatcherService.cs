@@ -1,8 +1,14 @@
-﻿using Avalonia.Threading;
-using System;
+﻿using System;
+using Avalonia.Threading;
 
-namespace BetterRaid.Services.Implementations;
-public class DispatcherService : ISynchronizaionService
+namespace BetterRaid.Services;
+
+public interface IDispatcherService
+{
+    void Invoke(Action action);
+}
+
+public class DispatcherService : IDispatcherService
 {
     private readonly Dispatcher dispatcher;
 

@@ -1,5 +1,7 @@
 ﻿using System;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Reactive.Linq;
 using System.Threading;
 using System.Threading.Tasks;
@@ -19,7 +21,7 @@ public class MainWindowViewModel : ViewModelBase
 {
     private readonly SourceList<TwitchChannel> _sourceList;
 
-    private readonly ISynchronizaionService _synchronizationService;
+    private readonly IDispatcherService _synchronizationService;
     private readonly ILogger<MainWindowViewModel> _logger;
     private readonly IWebToolsService _webTools;
     private readonly IDatabaseService _db;
@@ -28,23 +30,30 @@ public class MainWindowViewModel : ViewModelBase
     private string _filter;
     private bool _onlyOnline;
     private readonly ReadOnlyObservableCollection<TwitchChannel> _filteredChannels;
+    private TwitchChannel? _selectedChannel;
+    private bool _isAddChannelPopupVisible;
+    private string _newChannelName;
 
-    public ITwitchService Twitch => _twitch;
+    public ITwitchService Twitch =>
+        _twitch;
 
-    public ReadOnlyObservableCollection<TwitchChannel> FilteredChannels => _filteredChannels;
+    public ReadOnlyObservableCollection<TwitchChannel> FilteredChannels =>
+        _filteredChannels;
 
     public string Filter
     {
-        get => _filter;
+        get =>
+            _filter;
         set
         {
-            this.RaiseAndSetIfChanged(ref _filter, value);
-            
+            this.RaiseAndSetIfChanged(ref _filter,
+                value);
+
             _sourceList.Edit(innerList =>
             {
                 if (_db.Database == null)
                     return;
-                
+
                 innerList.Clear();
                 innerList.AddRange(_db.Database.Channels);
             });
@@ -53,30 +62,51 @@ public class MainWindowViewModel : ViewModelBase
 
     public bool OnlyOnline
     {
-        get => _onlyOnline;
+        get =>
+            _onlyOnline;
         set
         {
-            this.RaiseAndSetIfChanged(ref _onlyOnline, value);
-            
+            this.RaiseAndSetIfChanged(ref _onlyOnline,
+                value);
+
             _sourceList.Edit(innerList =>
             {
                 if (_db.Database == null)
                     return;
-                
+
                 innerList.Clear();
                 innerList.AddRange(_db.Database.Channels);
             });
         }
     }
 
-    public bool IsLoggedIn => _twitch.UserChannel != null;
+    public bool IsAddChannelPopupVisible
+    {
+        get => _isAddChannelPopupVisible;
+        set => this.RaiseAndSetIfChanged(ref _isAddChannelPopupVisible, value);
+    }
+
+    public bool IsLoggedIn =>
+        _twitch.UserChannel != null;
+
+    public TwitchChannel? SelectedChannel
+    {
+        get => _selectedChannel;
+        set => this.RaiseAndSetIfChanged(ref _selectedChannel, value);
+    }
+
+    public string NewChannelName
+    {
+        get => _newChannelName;
+        set => this.RaiseAndSetIfChanged(ref _newChannelName, value);
+    }
 
     public MainWindowViewModel(
         ILogger<MainWindowViewModel> logger,
         ITwitchService twitch,
         IWebToolsService webTools,
         IDatabaseService db,
-        ISynchronizaionService synchronizationService)
+        IDispatcherService synchronizationService)
     {
         _logger = logger;
         _twitch = twitch;
@@ -86,17 +116,21 @@ public class MainWindowViewModel : ViewModelBase
         _filter = string.Empty;
 
         _twitch.UserLoginChanged += OnUserLoginChanged;
+        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
 
         _sourceList = new SourceList<TwitchChannel>();
         _sourceList.Connect()
-            .Filter(channel => channel.Name.Contains(_filter, StringComparison.OrdinalIgnoreCase))
+            .Filter(channel => channel.Name.Contains(_filter,
+                StringComparison.OrdinalIgnoreCase))
             .Filter(channel => !OnlyOnline || channel.IsLive)
-            .Sort(SortExpressionComparer<TwitchChannel>.Descending(channel => channel.IsLive))
+            .Sort(SortExpressionComparer<TwitchChannel>
+                .Descending(channel => channel.ViewerCount)
+                .ThenByAscending(channel => channel.DisplayName!))
             .ObserveOn(RxApp.MainThreadScheduler)
             .Bind(out _filteredChannels)
             .Subscribe();
 
-        LoadChannelsFromDb();
+        InitializeChannels();
     }
 
     public void ExitApplication()
@@ -114,7 +148,9 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoginWithTwitch()
     {
-        _webTools.StartOAuthLogin(_twitch, OnTwitchLoginCallback, CancellationToken.None);
+        _webTools.StartOAuthLogin(_twitch,
+            OnTwitchLoginCallback,
+            CancellationToken.None);
     }
 
     private void OnTwitchLoginCallback()
@@ -122,7 +158,7 @@ public class MainWindowViewModel : ViewModelBase
         this.RaisePropertyChanged(nameof(IsLoggedIn));
     }
 
-    private void LoadChannelsFromDb()
+    private void InitializeChannels()
     {
         if (_db.Database == null)
         {
@@ -130,20 +166,95 @@ public class MainWindowViewModel : ViewModelBase
             return;
         }
 
-        foreach (var channel in _db.Database.Channels)
+        var updateTasks = _db.Database.Channels.Select(c =>
         {
-            Task.Run(() =>
+            return Task.Run(() =>
             {
-                channel.UpdateChannelData(_twitch);
-                _twitch.RegisterForEvents(channel);
+                c.UpdateChannelData(_twitch);
+                _twitch.RegisterForEvents(c);
             });
-        }
-        
-        _sourceList.Edit(innerList => innerList.AddRange(_db.Database.Channels));
+        });
+
+        Task.WhenAll(updateTasks).ContinueWith(_ =>
+        {
+            ReloadChannels();
+        });
     }
 
-    private void OnUserLoginChanged(object? sender, EventArgs e)
+    private void ReloadChannels()
+    {
+        if (_db.Database == null)
+        {
+            _logger.LogError("Database is null");
+            return;
+        }
+        
+        _sourceList.Edit(innerList =>
+        {
+            innerList.Clear();
+            innerList.AddRange(_db.Database.Channels);
+        });
+    }
+    
+    public void RemoveChannel(TwitchChannel channel)
+    {
+        if (_db.Database == null)
+        {
+            _logger.LogError("Database is null");
+            return;
+        }
+        
+        Twitch.UnregisterFromEvents(channel);
+        _db.Database.Channels.Remove(channel);
+        
+        if (_db.AutoSave)
+            _db.Save();
+        
+        ReloadChannels();
+    }
+
+    public void ShowAddChannelPopup(bool show)
+    {
+        IsAddChannelPopupVisible = show;
+    }
+    
+    public void AddChannel(string channelName)
+    {
+        if (_db.Database == null)
+        {
+            _logger.LogError("Database is null");
+            return;
+        }
+        
+        if (string.IsNullOrWhiteSpace(channelName))
+            return;
+        
+        if (_db.Database.Channels.Any(c => c.Name.Equals(channelName, StringComparison.OrdinalIgnoreCase)))
+            return;
+
+        var channel = new TwitchChannel(channelName);
+        channel.UpdateChannelData(_twitch);
+        Twitch.RegisterForEvents(channel);
+        
+        _db.Database.Channels.Add(channel);
+
+        if (_db.AutoSave)
+            _db.Save();
+        
+        ReloadChannels();
+        
+        IsAddChannelPopupVisible = false;
+        NewChannelName = string.Empty;
+    }
+
+    private void OnUserLoginChanged(object? sender,
+        EventArgs e)
     {
         this.RaisePropertyChanged(nameof(IsLoggedIn));
+    }
+
+    private void OnTwitchChannelUpdated(object? sender, TwitchChannel e)
+    {
+        ReloadChannels();
     }
 }

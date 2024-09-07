@@ -13,7 +13,7 @@ namespace BetterRaid.Services;
 public interface IDatabaseService
 {
     bool OnlyOnline { get; set; }
-    bool AutoSave { get; set; }
+    bool AutoSave { get; }
     BetterRaidDatabase? Database { get; set; }
     void LoadOrCreate();
     void LoadFromFile(string path, bool createIfNotExist = false);
@@ -29,7 +29,7 @@ public class DatabaseService : IDatabaseService
     private readonly ITwitchService _twitch;
 
     public bool OnlyOnline { get; set; }
-    public bool AutoSave { get; set; }
+    public bool AutoSave { get; private set; } = true;
     
     public BetterRaidDatabase? Database { get; set; }
 
@@ -58,8 +58,9 @@ public class DatabaseService : IDatabaseService
             
             case false when createIfNotExist:
                 _logger.LogWarning("Database file not found, creating new database");
-            
+
                 Database = new BetterRaidDatabase();
+                Database.Channels.Add(new TwitchChannel("ZionNetworks"));
                 Save(path);
             
                 _logger.LogDebug("Created new database at {path}", path);

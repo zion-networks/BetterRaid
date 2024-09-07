@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
@@ -9,12 +10,12 @@ using TwitchLib.PubSub.Events;
 namespace BetterRaid.Models;
 
 [JsonObject]
-public class TwitchChannel : INotifyPropertyChanged
+public class TwitchChannel : INotifyPropertyChanged, IEqualityComparer<TwitchChannel>
 {
     private string? _id;
     private string _name;
     private string? _broadcasterId;
-    private string? _viewerCount;
+    private int _viewerCount;
     private bool _isLive;
     private string? _displayName;
     private string? _thumbnailUrl;
@@ -76,7 +77,7 @@ public class TwitchChannel : INotifyPropertyChanged
     }
     
     [JsonIgnore]
-    public string? ViewerCount
+    public int ViewerCount
     {
         get => _viewerCount;
         set
@@ -179,9 +180,7 @@ public class TwitchChannel : INotifyPropertyChanged
         Category = channel.GameName;
         Title = channel.Title;
         IsLive = channel.IsLive;
-        ViewerCount = stream?.ViewerCount == null
-            ? null
-            : $"{stream.ViewerCount}";
+        ViewerCount = stream?.ViewerCount ?? 0;
     }
 
     public void OnStreamUp(object? sender, OnStreamUpArgs args)
@@ -205,7 +204,7 @@ public class TwitchChannel : INotifyPropertyChanged
         if (args.ChannelId != BroadcasterId)
             return;
 
-        ViewerCount = $"{args.Viewers}";
+        ViewerCount = args.Viewers;
     }
 
     public event PropertyChangedEventHandler? PropertyChanged;
@@ -213,5 +212,27 @@ public class TwitchChannel : INotifyPropertyChanged
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
         PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    public bool Equals(TwitchChannel? x, TwitchChannel? y)
+    {
+        if (ReferenceEquals(x, y))
+            return true;
+        
+        if (x is null)
+            return false;
+        
+        if (y is null)
+            return false;
+        
+        if (x.GetType() != y.GetType())
+            return false;
+        
+        return x._id == y._id;
+    }
+
+    public int GetHashCode(TwitchChannel obj)
+    {
+        return (obj._id != null ? obj._id.GetHashCode() : 0);
     }
 }

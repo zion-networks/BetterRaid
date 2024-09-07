@@ -23,6 +23,8 @@ public static class Constants
     public const string TwitchClientId = "kkxu4jorjrrc5jch1ito5i61hbev2o";
     public const string TwitchOAuthRedirectUrl = "http://localhost:9900";
     public const string TwitchOAuthResponseType = "token";
+    public const float RaidDuration = 90;
+
     public static readonly string[] TwitchOAuthScopes = [
         "channel:manage:raids",     // Allows the application to start and cancel raids on the broadcaster's channel
         "user:read:subscriptions"   // Allows the application to check, if the user has subscribed to the developer's channel

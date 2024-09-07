@@ -1,16 +1,21 @@
 ﻿using BetterRaid.ViewModels;
 
-namespace BetterRaid.Services.Implementations;
+namespace BetterRaid.Services;
+
+public interface IMainViewModelFactory
+{
+    MainWindowViewModel CreateMainWindowViewModel();
+}
 
 public class MainWindowViewModelFactory// : IMainViewModelFactory
 {
     private readonly ITwitchService _twitchService;
-    private readonly ISynchronizaionService _synchronizaionService;
+    private readonly IDispatcherService _dispatcherService;
 
-    public MainWindowViewModelFactory(ITwitchService twitchService, ISynchronizaionService synchronizaionService)
+    public MainWindowViewModelFactory(ITwitchService twitchService, IDispatcherService dispatcherService)
     {
         _twitchService = twitchService;
-        _synchronizaionService = synchronizaionService;
+        _dispatcherService = dispatcherService;
     }
 
     //public MainWindowViewModel CreateMainWindowViewModel()
