@@ -130,8 +130,10 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (TryLoadAccessToken(out var token))
         {
             _logger.LogInformation("Found access token.");
-            Task.Run(() => ConnectApiAsync(Constants.TwitchClientId, token))
-                .ContinueWith(_ => ConnectTwitchEvents());
+            
+            // Called synchronously, to make sure everything is set up before the app starts
+            ConnectApiAsync(Constants.TwitchClientId, token).Wait();
+            ConnectTwitchEventsAsync().Wait();
         }
         else
         {
@@ -139,7 +141,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         }
     }
 
-    private async Task ConnectTwitchEvents()
+    private async Task ConnectTwitchEventsAsync()
     {
         if (UserChannel == null || User == null)
             return;
