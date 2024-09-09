@@ -1,26 +1,28 @@
-<Window xmlns="https://github.com/avaloniaui"
-        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        xmlns:vm="using:BetterRaid.ViewModels"
-        xmlns:con="using:BetterRaid.Converters"
-        xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
-        xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-        xmlns:ai="using:AsyncImageLoader"
-        xmlns:misc="using:BetterRaid.Misc"
-        mc:Ignorable="d"
-        d:DesignWidth="600"
-        d:DesignHeight="800"
-        Width="600"
-        Height="800"
-        x:Class="BetterRaid.Views.MainWindow"
-        x:DataType="vm:MainWindowViewModel"
-        Icon="/Assets/logo.png"
-        Title="BetterRaid"
-        Background="DarkSlateGray">
+<rxui:ReactiveWindow x:TypeArguments="vm:MainWindowViewModel"
+                     xmlns="https://github.com/avaloniaui"
+                     xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                     xmlns:vm="using:BetterRaid.ViewModels"
+                     xmlns:con="using:BetterRaid.Converters"
+                     xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                     xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                     xmlns:ai="using:AsyncImageLoader"
+                     xmlns:misc="using:BetterRaid.Misc"
+                     xmlns:rxui="http://reactiveui.net"
+                     xmlns:betterRaid="using:BetterRaid"
+                     mc:Ignorable="d"
+                     d:DesignWidth="600"
+                     d:DesignHeight="800"
+                     Width="600"
+                     Height="800"
+                     x:Class="BetterRaid.Views.MainWindow"
+                     x:DataType="vm:MainWindowViewModel"
+                     Icon="/Assets/logo.png"
+                     Title="BetterRaid"
+                     Background="DarkSlateGray">
 
-    <Window.Resources>
-        <con:ChannelOnlineColorConverter x:Key="ChannelOnlineColorConverter" />
+    <rxui:ReactiveWindow.Resources>
         <con:NullCheckBooleanConverter x:Key="NullCheckBooleanConverter" />
-    </Window.Resources>
+    </rxui:ReactiveWindow.Resources>
 
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch"
@@ -39,15 +41,21 @@
                                    TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
 
             <TextBlock VerticalAlignment="Center"
+                       DataContext="{Binding Twitch.UserChannel}"
                        Margin="5, 0, 0, 0"
                        FontWeight="Bold">
                 <TextBlock.Text>
                     <MultiBinding StringFormat="{}{0} ({1})">
-                        <Binding Path="Twitch.UserChannel.DisplayName"
-                                 FallbackValue="-" />
-                        <Binding Path="Twitch.UserChannel.ViewerCount"
+                        <Binding Path="DisplayName"
+                                 FallbackValue="-"
+                                 TargetNullValue="-"
+                                 Mode="OneWay"
+                                 UpdateSourceTrigger="PropertyChanged" />
+                        <Binding Path="ViewerCount"
                                  FallbackValue="Offline"
-                                 TargetNullValue="Offline" />
+                                 TargetNullValue="Offline"
+                                 Mode="OneWay"
+                                 UpdateSourceTrigger="PropertyChanged" />
                     </MultiBinding>
                 </TextBlock.Text>
             </TextBlock>
@@ -74,7 +82,7 @@
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"
               Grid.Row="1"
-              IsVisible="{Binding SelectedChannel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullCheckBooleanConverter}}"
+              IsVisible="{Binding ChannelsListVm.SelectedChannel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullCheckBooleanConverter}}"
               ColumnDefinitions="*"
               RowDefinitions="50">
 
@@ -113,7 +121,7 @@
                     Width="120"
                     Margin="10, 10"
                     IsVisible="{Binding Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StopRaidCommand}" />
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StopRaidCommand, FallbackValue={x:Null}}" />
 
             <Button
                 HorizontalAlignment="Right"
@@ -125,8 +133,8 @@
                 Width="120"
                 Margin="10, 10"
                 IsVisible="{Binding !Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand}"
-                CommandParameter="{Binding SelectedChannel}">
+                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand, FallbackValue={x:Null}}"
+                CommandParameter="{Binding ChannelsListVm.SelectedChannel}">
                 <Button.Content>
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Stretch"
@@ -177,249 +185,16 @@
             </Button>
         </Panel>
         
-        <ScrollViewer Grid.Column="0"
-                      Grid.ColumnSpan="2"
-                      Grid.Row="2"
-                      IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                      HorizontalScrollBarVisibility="Disabled"
-                      VerticalScrollBarVisibility="Auto">
-
-            <ScrollViewer.GestureRecognizers>
-                <ScrollGestureRecognizer CanHorizontallyScroll="False"
-                                         CanVerticallyScroll="True"
-                                         IsScrollInertiaEnabled="True" />
-            </ScrollViewer.GestureRecognizers>
-
-            <ListBox ItemsSource="{Binding FilteredChannels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                     SelectedItem="{Binding SelectedChannel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                     SelectionMode="Single">
-
-                <ListBox.Styles>
-                    <Style Selector="ListBoxItem Button.DeleteButton ai|AdvancedImage">
-                        <Setter Property="IsVisible" Value="False" />
-                    </Style>
-                    <Style Selector="ListBoxItem:pointerover Button.DeleteButton ai|AdvancedImage">
-                        <Setter Property="IsVisible" Value="True" />
-                    </Style>
-                </ListBox.Styles>
-
-                <ListBox.ItemsPanel>
-                    <ItemsPanelTemplate>
-                        <VirtualizingStackPanel Orientation="Vertical" />
-                    </ItemsPanelTemplate>
-                </ListBox.ItemsPanel>
-
-                <ListBox.ItemTemplate>
-                    <DataTemplate>
-                        <Grid ColumnDefinitions="100, *"
-                              RowDefinitions="100">
-
-                            <ai:AdvancedImage Grid.Column="0"
-                                              Grid.Row="0"
-                                              HorizontalAlignment="Stretch"
-                                              VerticalAlignment="Stretch"
-                                              Source="{Binding ThumbnailUrl, Mode=OneWay, TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
-
-                            <Border Grid.Column="0"
-                                    Grid.Row="0"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Bottom"
-                                    Height="25"
-                                    MinWidth="25"
-                                    CornerRadius="12.5"
-                                    Background="{Binding IsLive, Mode=OneWay, Converter={StaticResource ChannelOnlineColorConverter}}"
-                                    Padding="0"
-                                    Margin="0, 0, 5, 5">
-
-                                <TextBlock
-                                    Text="{Binding ViewerCount, Mode=OneWay, TargetNullValue='-', UpdateSourceTrigger=PropertyChanged}"
-                                    FontSize="12"
-                                    TextAlignment="Center"
-                                    FontWeight="SemiBold"
-                                    Padding="0"
-                                    Margin="5"
-                                    Foreground="Black" />
-                            </Border>
-
-                            <Grid Grid.Column="1"
-                                  Grid.Row="0"
-                                  Margin="10, 0, 0, 0"
-                                  ColumnDefinitions="100, *"
-                                  RowDefinitions="20, 20, 40, 20">
-                                <TextBlock Grid.Column="0"
-                                           Grid.Row="0"
-                                           Grid.ColumnSpan="2"
-                                           FontWeight="Bold"
-                                           TextDecorations="Underline"
-                                           Text="{Binding Name, Mode=OneWay, TargetNullValue='???'}" />
-
-                                <TextBlock Grid.Column="0"
-                                           Grid.Row="1"
-                                           Text="Category:"
-                                           FontWeight="SemiBold" />
-
-                                <TextBlock Grid.Column="0"
-                                           Grid.Row="2"
-                                           Text="Title:"
-                                           FontWeight="SemiBold" />
-
-                                <TextBlock Grid.Column="0"
-                                           Grid.Row="3"
-                                           Text="Last Raided:"
-                                           FontWeight="SemiBold" />
-
-                                <TextBlock Grid.Column="1"
-                                           Grid.Row="1"
-                                           Text="{Binding Category, Mode=OneWay, TargetNullValue='-'}" />
-
-                                <TextBlock Grid.Column="1"
-                                           Grid.Row="2"
-                                           TextWrapping="Wrap"
-                                           Text="{Binding Title, Mode=OneWay, TargetNullValue='-'}" />
-
-                                <TextBlock Grid.Column="1"
-                                           Grid.Row="3"
-                                           Text="{Binding LastRaided, Mode=OneWay, TargetNullValue='Never Raided'}" />
-                            </Grid>
-
-                            <Button Grid.Column="1"
-                                    Classes="DeleteButton"
-                                    HorizontalAlignment="Right"
-                                    VerticalAlignment="Top"
-                                    Height="24"
-                                    Width="24"
-                                    Background="Transparent"
-                                    CornerRadius="12"
-                                    Padding="0"
-                                    Margin="0, 5, 5, 0"
-                                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).RemoveChannel}"
-                                    CommandParameter="{Binding .}">
-                                <ai:AdvancedImage HorizontalAlignment="Stretch"
-                                                  VerticalAlignment="Stretch"
-                                                  Source="avares://BetterRaid/Assets/icons8-delete2-24.png" />
-                            </Button>
-                        </Grid>
-                    </DataTemplate>
-                </ListBox.ItemTemplate>
-            </ListBox>
-
-        </ScrollViewer>
-
-        <Button Grid.Row="2"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
-                Height="64"
-                Width="64"
-                CornerRadius="32"
-                Background="DodgerBlue"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
-                Margin="0, 0, 15, 15"
-                IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Command="{Binding ShowAddChannelPopup}"
-                CommandParameter="{x:True}">
-            <Button.Styles>
-                <Style Selector="Button">
-                    <Setter Property="Background" Value="DodgerBlue" />
-                </Style>
-                <Style Selector="Button:pointerover /template/ ContentPresenter">
-                    <Setter Property="Background" Value="CornflowerBlue" />
-                </Style>
-            </Button.Styles>
-            <Button.Content>
-                <Image Source="avares://BetterRaid/Assets/icons8-add-64.png"
-                       HorizontalAlignment="Stretch"
-                       VerticalAlignment="Stretch" />
-            </Button.Content>
-        </Button>
-
-        <Border Grid.Row="2"
-                Grid.Column="0"
-                Grid.ColumnSpan="2"
-                HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Width="300"
-                Height="150"
-                CornerRadius="10"
-                Background="White"
-                IsVisible="{Binding IsAddChannelPopupVisible, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
-
-            <Grid HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  ColumnDefinitions="*"
-                  RowDefinitions="40,*,50">
-
-                <TextBlock Grid.Row="0"
-                           Grid.Column="0"
-                           Text="Add new Channel"
-                           TextAlignment="Center"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center"
-                           FontWeight="Bold"
-                           Foreground="DodgerBlue" />
-
-                <TextBox Grid.Row="1"
-                         Grid.Column="0"
-                         Height="30"
-                         Text="{Binding NewChannelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="Channel Name"
-                         Margin="10" />
-
-                <StackPanel Grid.Row="2"
-                            Grid.Column="0"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Stretch">
-
-                    <Button Content="Cancel"
-                            Command="{Binding ShowAddChannelPopup}"
-                            CommandParameter="{x:False}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            HorizontalContentAlignment="Center"
-                            Width="100"
-                            Height="30"
-                            Background="IndianRed"
-                            Margin="10">
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="IndianRed" />
-                            </Style>
-                            
-                            <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="LightCoral" />
-                            </Style>
-                        </Button.Styles>
-                    </Button>
-
-                    <Button Content="Add"
-                            Command="{Binding AddChannel}"
-                            CommandParameter="{Binding NewChannelName}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            HorizontalContentAlignment="Center"
-                            Width="100"
-                            Height="30"
-                            Background="DodgerBlue"
-                            Margin="10">
-                        
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="DodgerBlue" />
-                            </Style>
-                            
-                            <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="CornflowerBlue" />
-                            </Style>
-                        </Button.Styles>
-                        
-                    </Button>
-
-                </StackPanel>
-            </Grid>
-
-        </Border>
-
+        <rxui:RoutedViewHost  Grid.Column="0"
+                              Grid.ColumnSpan="2"
+                              Grid.Row="2"
+                              HorizontalAlignment="Stretch"
+                              VerticalAlignment="Stretch"
+                              IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                              Router="{Binding Router}">
+            <rxui:RoutedViewHost.ViewLocator>
+                <betterRaid:RxViewLocator />
+            </rxui:RoutedViewHost.ViewLocator>
+        </rxui:RoutedViewHost>
     </Grid>
-
-</Window>
+</rxui:ReactiveWindow>

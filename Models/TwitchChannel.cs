@@ -4,6 +4,7 @@ using System.ComponentModel;
 using System.Linq;
 using System.Runtime.CompilerServices;
 using BetterRaid.Services;
+using Microsoft.Extensions.Logging;
 using Newtonsoft.Json;
 using TwitchLib.PubSub.Events;
 
@@ -22,6 +23,8 @@ public class TwitchChannel : INotifyPropertyChanged, IEqualityComparer<TwitchCha
     private string? _category;
     private string? _title;
     private DateTime? _lastRaided;
+    
+    private ILogger<TwitchChannel>? Logger { get; set; }
 
     public string? Id
     {
@@ -157,9 +160,11 @@ public class TwitchChannel : INotifyPropertyChanged, IEqualityComparer<TwitchCha
         }
     }
 
-    public TwitchChannel(string? channelName)
+    public TwitchChannel(string? channelName, ILogger<TwitchChannel>? logger = null)
     {
         _name = channelName ?? string.Empty;
+
+        Logger = logger;
     }
 
     public void UpdateChannelData(ITwitchService service)
@@ -168,7 +173,10 @@ public class TwitchChannel : INotifyPropertyChanged, IEqualityComparer<TwitchCha
             .FirstOrDefault(c => c.BroadcasterLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));
 
         if (channel == null)
+        {
+            Logger?.LogError("Channel {ChannelName} not found", Name);
             return;
+        }
         
         var stream = service.TwitchApi.Helix.Streams.GetStreamsAsync(userLogins: [ Name ]).Result.Streams
             .FirstOrDefault(s => s.UserLogin.Equals(Name, StringComparison.CurrentCultureIgnoreCase));

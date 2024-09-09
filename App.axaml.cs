@@ -10,6 +10,7 @@ using BetterRaid.ViewModels;
 using BetterRaid.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ReactiveUI;
 
 namespace BetterRaid;
 
@@ -68,6 +69,7 @@ public class App : Application
         services.AddSingleton<IWebToolsService, WebToolsService>();
         services.AddSingleton<IDatabaseService, DatabaseService>();
         services.AddSingleton<IDispatcherService, DispatcherService>(_ => new DispatcherService(Dispatcher.UIThread));
+        services.AddTransient<MainWindowChannelsListViewModel>();
         services.AddTransient<MainWindowViewModel>();
 
         return services.BuildServiceProvider();

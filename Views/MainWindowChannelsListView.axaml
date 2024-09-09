@@ -1,0 +1,247 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="clr-namespace:BetterRaid.ViewModels"
+             xmlns:ai="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+             xmlns:misc="clr-namespace:BetterRaid.Misc"
+             xmlns:converters="clr-namespace:BetterRaid.Converters"
+             x:Class="BetterRaid.Views.MainWindowChannelsListView"
+             x:DataType="vm:MainWindowChannelsListViewModel">
+
+    <UserControl.Resources>
+        <converters:ChannelOnlineColorConverter x:Key="ChannelOnlineColorConverter" />
+    </UserControl.Resources>
+    
+    <Grid HorizontalAlignment="Stretch"
+          VerticalAlignment="Stretch">
+        
+        <!-- Add Channel Popup -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="300"
+                Height="150"
+                CornerRadius="10"
+                Background="White"
+                IsVisible="{Binding IsAddChannelPopupVisible, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+
+            <Grid HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  ColumnDefinitions="*"
+                  RowDefinitions="40,*,50">
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           Text="Add new Channel"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           FontWeight="Bold"
+                           Foreground="DodgerBlue" />
+
+                <TextBox Grid.Row="1"
+                         Grid.Column="0"
+                         Height="30"
+                         Text="{Binding NewChannelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Watermark="Channel Name"
+                         Margin="10" />
+
+                <StackPanel Grid.Row="2"
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Stretch">
+
+                    <Button Content="Cancel"
+                            Command="{Binding ShowAddChannelPopup}"
+                            CommandParameter="{x:False}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            Width="100"
+                            Height="30"
+                            Background="IndianRed"
+                            Margin="10">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="IndianRed" />
+                            </Style>
+                            
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="LightCoral" />
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                    <Button Content="Add"
+                            Command="{Binding AddChannel}"
+                            CommandParameter="{Binding NewChannelName}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            Width="100"
+                            Height="30"
+                            Background="DodgerBlue"
+                            Margin="10">
+                        
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="DodgerBlue" />
+                            </Style>
+                            
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="CornflowerBlue" />
+                            </Style>
+                        </Button.Styles>
+                        
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
+        
+        <!-- Channels List -->
+        <ScrollViewer HorizontalAlignment="Stretch"
+                      VerticalAlignment="Stretch"
+                      HorizontalContentAlignment="Stretch"
+                      VerticalContentAlignment="Stretch"
+                      HorizontalScrollBarVisibility="Disabled"
+                      VerticalScrollBarVisibility="Auto">
+
+            <ListBox ItemsSource="{Binding FilteredChannels, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                     SelectedItem="{Binding SelectedChannel, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                     SelectionMode="Single">
+
+                <ListBox.Styles>
+                    <Style Selector="ListBoxItem Button.DeleteButton ai|AdvancedImage">
+                        <Setter Property="IsVisible" Value="False" />
+                    </Style>
+                    <Style Selector="ListBoxItem:pointerover Button.DeleteButton ai|AdvancedImage">
+                        <Setter Property="IsVisible" Value="True" />
+                    </Style>
+                </ListBox.Styles>
+
+                <ListBox.ItemsPanel>
+                    <ItemsPanelTemplate>
+                        <VirtualizingStackPanel Orientation="Vertical" />
+                    </ItemsPanelTemplate>
+                </ListBox.ItemsPanel>
+
+                <ListBox.ItemTemplate>
+                    <DataTemplate>
+                        <Grid ColumnDefinitions="100, *"
+                              RowDefinitions="100">
+
+                            <ai:AdvancedImage Grid.Column="0"
+                                              Grid.Row="0"
+                                              HorizontalAlignment="Stretch"
+                                              VerticalAlignment="Stretch"
+                                              Source="{Binding ThumbnailUrl, Mode=OneWay, TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
+
+                            <Border Grid.Column="0"
+                                    Grid.Row="0"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Bottom"
+                                    Height="25"
+                                    MinWidth="25"
+                                    CornerRadius="12.5"
+                                    Background="{Binding IsLive, Mode=OneWay, Converter={StaticResource ChannelOnlineColorConverter}}"
+                                    Padding="0"
+                                    Margin="0, 0, 5, 5">
+
+                                <TextBlock
+                                    Text="{Binding ViewerCount, Mode=OneWay, TargetNullValue='-', UpdateSourceTrigger=PropertyChanged}"
+                                    FontSize="12"
+                                    TextAlignment="Center"
+                                    FontWeight="SemiBold"
+                                    Padding="0"
+                                    Margin="5"
+                                    Foreground="Black" />
+                            </Border>
+
+                            <Grid Grid.Column="1"
+                                  Grid.Row="0"
+                                  Margin="10, 0, 0, 0"
+                                  ColumnDefinitions="100, *"
+                                  RowDefinitions="20, 20, 40, 20">
+                                <TextBlock Grid.Column="0"
+                                           Grid.Row="0"
+                                           Grid.ColumnSpan="2"
+                                           FontWeight="Bold"
+                                           TextDecorations="Underline"
+                                           Text="{Binding Name, Mode=OneWay, TargetNullValue='???'}" />
+
+                                <TextBlock Grid.Column="0"
+                                           Grid.Row="1"
+                                           Text="Category:"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Column="0"
+                                           Grid.Row="2"
+                                           Text="Title:"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Column="0"
+                                           Grid.Row="3"
+                                           Text="Last Raided:"
+                                           FontWeight="SemiBold" />
+
+                                <TextBlock Grid.Column="1"
+                                           Grid.Row="1"
+                                           Text="{Binding Category, Mode=OneWay, TargetNullValue='-'}" />
+
+                                <TextBlock Grid.Column="1"
+                                           Grid.Row="2"
+                                           TextWrapping="Wrap"
+                                           Text="{Binding Title, Mode=OneWay, TargetNullValue='-'}" />
+
+                                <TextBlock Grid.Column="1"
+                                           Grid.Row="3"
+                                           Text="{Binding LastRaided, Mode=OneWay, TargetNullValue='Never Raided'}" />
+                            </Grid>
+
+                            <Button Grid.Column="1"
+                                    Classes="DeleteButton"
+                                    HorizontalAlignment="Right"
+                                    VerticalAlignment="Top"
+                                    Height="24"
+                                    Width="24"
+                                    Background="Transparent"
+                                    CornerRadius="12"
+                                    Padding="0"
+                                    Margin="0, 5, 5, 0"
+                                    Command="{Binding $parent[UserControl].((vm:MainWindowChannelsListViewModel)DataContext).RemoveChannelCommand}"
+                                    CommandParameter="{Binding .}">
+                                <ai:AdvancedImage HorizontalAlignment="Stretch"
+                                                  VerticalAlignment="Stretch"
+                                                  Source="avares://BetterRaid/Assets/icons8-delete2-24.png" />
+                            </Button>
+                        </Grid>
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </ScrollViewer>
+        
+        <Button Height="64"
+                Width="64"
+                CornerRadius="32"
+                Background="DodgerBlue"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                Margin="0, 0, 15, 15"
+                IsVisible="{Binding MainVm.IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=False}"
+                Command="{Binding ShowAddChannelPopupCommand}"
+                CommandParameter="{x:True}">
+            <Button.Styles>
+                <Style Selector="Button">
+                    <Setter Property="Background" Value="DodgerBlue" />
+                </Style>
+                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="CornflowerBlue" />
+                </Style>
+            </Button.Styles>
+            <Button.Content>
+                <Image Source="avares://BetterRaid/Assets/icons8-add-64.png"
+                       HorizontalAlignment="Stretch"
+                       VerticalAlignment="Stretch" />
+            </Button.Content>
+        </Button>
+    </Grid>
+</UserControl>
