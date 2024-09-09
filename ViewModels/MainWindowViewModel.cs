@@ -34,8 +34,8 @@ public class MainWindowViewModel : ViewModelBase
     private bool _isAddChannelPopupVisible;
     private string _newChannelName;
 
-    public ITwitchService Twitch =>
-        _twitch;
+    public ITwitchService Twitch => _twitch;
+    public ILogger<MainWindowViewModel> Logger => _logger;
 
     public ReadOnlyObservableCollection<TwitchChannel> FilteredChannels =>
         _filteredChannels;
@@ -87,7 +87,7 @@ public class MainWindowViewModel : ViewModelBase
     }
 
     public bool IsLoggedIn =>
-        _twitch.UserChannel != null;
+        Twitch.UserChannel != null;
 
     public TwitchChannel? SelectedChannel
     {
@@ -115,8 +115,8 @@ public class MainWindowViewModel : ViewModelBase
         _synchronizationService = synchronizationService;
         _filter = string.Empty;
 
-        _twitch.UserLoginChanged += OnUserLoginChanged;
-        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
+        Twitch.UserLoginChanged += OnUserLoginChanged;
+        Twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
 
         _sourceList = new SourceList<TwitchChannel>();
         _sourceList.Connect()
@@ -148,7 +148,7 @@ public class MainWindowViewModel : ViewModelBase
 
     public void LoginWithTwitch()
     {
-        _webTools.StartOAuthLogin(_twitch,
+        _webTools.StartOAuthLogin(Twitch,
             OnTwitchLoginCallback,
             CancellationToken.None);
     }
@@ -162,21 +162,23 @@ public class MainWindowViewModel : ViewModelBase
     {
         if (_db.Database == null)
         {
-            _logger.LogError("Database is null");
+            Logger.LogError("Database is null");
             return;
         }
 
+        Logger.LogDebug("Initializing {ChannelCount} channels", _db.Database.Channels.Count);
         var updateTasks = _db.Database.Channels.Select(c =>
         {
             return Task.Run(() =>
             {
-                c.UpdateChannelData(_twitch);
-                _twitch.RegisterForEvents(c);
+                c.UpdateChannelData(Twitch);
+                Twitch.RegisterForEvents(c);
             });
         });
 
         Task.WhenAll(updateTasks).ContinueWith(_ =>
         {
+            Logger.LogDebug("Finished initializing channels");
             ReloadChannels();
         });
     }
@@ -233,7 +235,7 @@ public class MainWindowViewModel : ViewModelBase
             return;
 
         var channel = new TwitchChannel(channelName);
-        channel.UpdateChannelData(_twitch);
+        channel.UpdateChannelData(Twitch);
         Twitch.RegisterForEvents(channel);
         
         _db.Database.Channels.Add(channel);

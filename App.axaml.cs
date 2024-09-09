@@ -61,7 +61,7 @@ public class App : Application
         var services = new ServiceCollection();
         services.AddLogging(logging =>
         {
-            logging.SetMinimumLevel(LogLevel.Information);
+            logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddConsole();
         });
         services.AddSingleton<ITwitchService, TwitchService>();
