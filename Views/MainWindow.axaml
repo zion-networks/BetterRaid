@@ -17,7 +17,7 @@
                      x:Class="BetterRaid.Views.MainWindow"
                      x:DataType="vm:MainWindowViewModel"
                      Icon="/Assets/logo.png"
-                     Title="BetterRaid"
+                     Title="{x:Static misc:Constants.AppWindowTitle}"
                      Background="DarkSlateGray">
 
     <rxui:ReactiveWindow.Resources>
