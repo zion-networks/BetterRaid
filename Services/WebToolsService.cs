@@ -39,7 +39,7 @@ public class WebToolsService : IWebToolsService
             Task.Run(() => WaitForCallback(twitch, callback, token), token);
         }
 
-        OpenUrl(twitch.GetOAuthUrl());
+        OpenUrl(Tools.GetOAuthUrl());
     }
 
     private async Task WaitForCallback(ITwitchService twitch, Action? callback, CancellationToken token)
@@ -148,7 +148,9 @@ public class WebToolsService : IWebToolsService
             // hack because of this: https://github.com/dotnet/corefx/issues/10361
             if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             {
-                url = url.Replace("&", "^&");
+                // Related to https://github.com/zion-networks/BetterRaid/issues/4
+                // Won't work for Opera GX
+                // url = url.Replace("&", "^&");
                 Process.Start(new ProcessStartInfo(url) { UseShellExecute = true });
             }
             else if (RuntimeInformation.IsOSPlatform(OSPlatform.Linux))
