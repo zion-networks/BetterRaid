@@ -37,6 +37,17 @@ public class DatabaseService : IDatabaseService
     {
         _logger = logger;
         _twitch = twitch;
+        
+        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
+    }
+
+    private void OnTwitchChannelUpdated(object? sender, TwitchChannel e)
+    {
+        if (Database == null)
+            return;
+
+        if (AutoSave)
+            Save();
     }
 
     public void LoadOrCreate()

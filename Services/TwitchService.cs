@@ -91,7 +91,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         get => _userChannel;
         set
         {
-            if (_userChannel != null && _userChannel.Name.Equals(value?.Name) == true)
+            if (_userChannel != null && _userChannel.Name.Equals(value?.Name))
                 return;
 
             SetField(ref _userChannel, value);
@@ -335,6 +335,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         }
         
         _raidStartTime = TimeZoneInfo.ConvertTime(raid.CreatedAt, TimeZoneInfo.Local);
+        
+        to.LastRaided = DateTime.Now;
 
         Task.Run(async () =>
         {

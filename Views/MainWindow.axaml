@@ -218,7 +218,7 @@
                                               Grid.Row="0"
                                               HorizontalAlignment="Stretch"
                                               VerticalAlignment="Stretch"
-                                              Source="{Binding ThumbnailUrl, TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
+                                              Source="{Binding ThumbnailUrl, Mode=OneWay, TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
 
                             <Border Grid.Column="0"
                                     Grid.Row="0"
@@ -227,12 +227,12 @@
                                     Height="25"
                                     MinWidth="25"
                                     CornerRadius="12.5"
-                                    Background="{Binding IsLive, Converter={StaticResource ChannelOnlineColorConverter}}"
+                                    Background="{Binding IsLive, Mode=OneWay, Converter={StaticResource ChannelOnlineColorConverter}}"
                                     Padding="0"
                                     Margin="0, 0, 5, 5">
 
                                 <TextBlock
-                                    Text="{Binding ViewerCount, TargetNullValue='-', Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                                    Text="{Binding ViewerCount, Mode=OneWay, TargetNullValue='-', UpdateSourceTrigger=PropertyChanged}"
                                     FontSize="12"
                                     TextAlignment="Center"
                                     FontWeight="SemiBold"
@@ -251,7 +251,7 @@
                                            Grid.ColumnSpan="2"
                                            FontWeight="Bold"
                                            TextDecorations="Underline"
-                                           Text="{Binding Name, TargetNullValue='???'}" />
+                                           Text="{Binding Name, Mode=OneWay, TargetNullValue='???'}" />
 
                                 <TextBlock Grid.Column="0"
                                            Grid.Row="1"
@@ -270,16 +270,16 @@
 
                                 <TextBlock Grid.Column="1"
                                            Grid.Row="1"
-                                           Text="{Binding Category, TargetNullValue='-'}" />
+                                           Text="{Binding Category, Mode=OneWay, TargetNullValue='-'}" />
 
                                 <TextBlock Grid.Column="1"
                                            Grid.Row="2"
                                            TextWrapping="Wrap"
-                                           Text="{Binding Title, TargetNullValue='-'}" />
+                                           Text="{Binding Title, Mode=OneWay, TargetNullValue='-'}" />
 
                                 <TextBlock Grid.Column="1"
                                            Grid.Row="3"
-                                           Text="{Binding LastRaided, TargetNullValue='Never Raided'}" />
+                                           Text="{Binding LastRaided, Mode=OneWay, TargetNullValue='Never Raided'}" />
                             </Grid>
 
                             <Button Grid.Column="1"
