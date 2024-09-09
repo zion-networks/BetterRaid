@@ -5,6 +5,11 @@ namespace BetterRaid.Misc;
 
 public static class Constants
 {
+    public const string AppName = "BetterRaid";
+    public const string AppVersion = "0.0.2.1-alpha";
+    
+    public const string AppWindowTitle = AppName + " v" + AppVersion;
+    
     // General
     public const string ChannelPlaceholderImageUrl = "https://cdn.pixabay.com/photo/2018/11/13/22/01/avatar-3814081_1280.png";
     
