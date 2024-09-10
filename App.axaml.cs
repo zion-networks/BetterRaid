@@ -69,7 +69,7 @@ public class App : Application
         services.AddSingleton<IWebToolsService, WebToolsService>();
         services.AddSingleton<IDatabaseService, DatabaseService>();
         services.AddSingleton<IDispatcherService, DispatcherService>(_ => new DispatcherService(Dispatcher.UIThread));
-        services.AddTransient<MainWindowChannelsListViewModel>();
+        services.AddTransient<ChannelsListViewModel>();
         services.AddTransient<MainWindowViewModel>();
 
         return services.BuildServiceProvider();
@@ -84,9 +84,10 @@ public class App : Application
             throw new FieldAccessException($"\"{nameof(_serviceProvider)}\" was null");
         }
 
+        var vm = _serviceProvider.GetRequiredService<MainWindowViewModel>();
         var mainWindow = new MainWindow
         {
-            DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
+            DataContext = vm
         };
 
         switch (ApplicationLifetime)

@@ -1,4 +1,5 @@
 using System;
+using BetterRaid.Controls;
 using BetterRaid.ViewModels;
 using BetterRaid.Views;
 using ReactiveUI;
@@ -13,7 +14,8 @@ public class RxViewLocator : IViewLocator
         
         return viewModel switch
         {
-            MainWindowChannelsListViewModel context => new MainWindowChannelsListView { DataContext = context },
+            ChannelsListViewModel context => new ChannelsListControl { DataContext = context },
+            MainWindowViewModel context => new MainWindow { DataContext = context },
             _ => throw new ArgumentOutOfRangeException(nameof(viewModel))
         };
     }

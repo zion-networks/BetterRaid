@@ -31,4 +31,11 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="TwitchLib" Version="3.5.3" />
   </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Controls\ChannelsListControl.axaml.cs">
+      <DependentUpon>MainWindowChannelsListView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
+  </ItemGroup>
 </Project>

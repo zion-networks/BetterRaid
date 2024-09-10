@@ -3,11 +3,11 @@ using Avalonia.ReactiveUI;
 using BetterRaid.ViewModels;
 using ReactiveUI;
 
-namespace BetterRaid.Views;
+namespace BetterRaid.Controls;
 
-public partial class MainWindowChannelsListView : ReactiveUserControl<MainWindowChannelsListViewModel>
+public partial class ChannelsListControl : ReactiveUserControl<ChannelsListViewModel>
 {
-    public MainWindowChannelsListView()
+    public ChannelsListControl()
     {
         this.WhenActivated(_ => { });
         AvaloniaXamlLoader.Load(this);

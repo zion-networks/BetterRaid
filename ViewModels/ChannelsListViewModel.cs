@@ -13,7 +13,7 @@ using ReactiveUI;
 
 namespace BetterRaid.ViewModels;
 
-public class MainWindowChannelsListViewModel : ViewModelBase, IRoutableViewModel
+public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
 {
     #region Private Fields
     
@@ -27,7 +27,7 @@ public class MainWindowChannelsListViewModel : ViewModelBase, IRoutableViewModel
     
     #region Services
     
-    private ILogger<MainWindowChannelsListViewModel> Logger { get; set; }
+    private ILogger<ChannelsListViewModel> Logger { get; set; }
     private MainWindowViewModel? MainVm { get; set; }
     public ITwitchService Twitch { get; set; }
     public IDatabaseService Database { get; set; }
@@ -68,10 +68,10 @@ public class MainWindowChannelsListViewModel : ViewModelBase, IRoutableViewModel
     }
     
     #endregion Public Properties
-    
-    public MainWindowChannelsListViewModel
+
+    public ChannelsListViewModel
         (
-            ILogger<MainWindowChannelsListViewModel> logger,
+            ILogger<ChannelsListViewModel> logger,
             MainWindowViewModel mainVm,
             IDatabaseService db,
             ITwitchService twitch
@@ -88,7 +88,7 @@ public class MainWindowChannelsListViewModel : ViewModelBase, IRoutableViewModel
         if (MainVm is null)
         {
             Logger.LogError("Failed to initialize {ViewModel} because {MainVm} is null",
-                nameof(MainWindowChannelsListViewModel), nameof(MainVm));
+                nameof(ChannelsListViewModel), nameof(MainVm));
             return;
         }
         

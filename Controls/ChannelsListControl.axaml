@@ -1,11 +1,13 @@
-<UserControl xmlns="https://github.com/avaloniaui"
-             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-             xmlns:vm="clr-namespace:BetterRaid.ViewModels"
-             xmlns:ai="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
-             xmlns:misc="clr-namespace:BetterRaid.Misc"
-             xmlns:converters="clr-namespace:BetterRaid.Converters"
-             x:Class="BetterRaid.Views.MainWindowChannelsListView"
-             x:DataType="vm:MainWindowChannelsListViewModel">
+<rx:ReactiveUserControl x:TypeArguments="vm:ChannelsListViewModel"
+                        xmlns="https://github.com/avaloniaui"
+                        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                        xmlns:vm="clr-namespace:BetterRaid.ViewModels"
+                        xmlns:ai="clr-namespace:AsyncImageLoader;assembly=AsyncImageLoader.Avalonia"
+                        xmlns:misc="clr-namespace:BetterRaid.Misc"
+                        xmlns:converters="clr-namespace:BetterRaid.Converters"
+                        xmlns:rx="http://reactiveui.net"
+                        x:Class="BetterRaid.Controls.ChannelsListControl"
+                        x:DataType="vm:ChannelsListViewModel">
 
     <UserControl.Resources>
         <converters:ChannelOnlineColorConverter x:Key="ChannelOnlineColorConverter" />
@@ -207,7 +209,7 @@
                                     CornerRadius="12"
                                     Padding="0"
                                     Margin="0, 5, 5, 0"
-                                    Command="{Binding $parent[UserControl].((vm:MainWindowChannelsListViewModel)DataContext).RemoveChannelCommand}"
+                                    Command="{Binding $parent[UserControl].((vm:ChannelsListViewModel)DataContext).RemoveChannelCommand}"
                                     CommandParameter="{Binding .}">
                                 <ai:AdvancedImage HorizontalAlignment="Stretch"
                                                   VerticalAlignment="Stretch"
@@ -244,4 +246,4 @@
             </Button.Content>
         </Button>
     </Grid>
-</UserControl>
+</rx:ReactiveUserControl>

@@ -22,14 +22,14 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     #region Services
     
     private ILogger<MainWindowViewModel> Logger { get; }
-    private ITwitchService Twitch { get; }
+    public ITwitchService Twitch { get; }
     private IWebToolsService WebTools { get; }
     private IDatabaseService Database { get; }
 
     #endregion
     
     public RoutingState Router { get; } = new();
-    public MainWindowChannelsListViewModel ChannelsListVm { get; set; }
+    public ChannelsListViewModel ChannelsListVm { get; set; }
 
     public string Filter
     {
@@ -67,8 +67,8 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         
         Twitch.UserLoginChanged += OnUserLoginChanged;
         
-        var mwclvmLogger = serviceProvider.GetRequiredService<ILogger<MainWindowChannelsListViewModel>>();
-        ChannelsListVm = new MainWindowChannelsListViewModel(mwclvmLogger, this, Database, Twitch);
+        var mwclvmLogger = serviceProvider.GetRequiredService<ILogger<ChannelsListViewModel>>();
+        ChannelsListVm = new ChannelsListViewModel(mwclvmLogger, this, Database, Twitch);
         Router.Navigate.Execute(ChannelsListVm);
     }
 
