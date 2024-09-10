@@ -29,7 +29,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     #endregion
     
     public RoutingState Router { get; } = new();
-    public ChannelsListViewModel ChannelsListVm { get; set; }
+    public ChannelsPageViewModel ChannelsPageVm { get; set; }
 
     public string Filter
     {
@@ -65,11 +65,12 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         Database = db;
         Filter = string.Empty;
         
+        this.RaisePropertyChanged(nameof(IsLoggedIn));
         Twitch.UserLoginChanged += OnUserLoginChanged;
         
-        var mwclvmLogger = serviceProvider.GetRequiredService<ILogger<ChannelsListViewModel>>();
-        ChannelsListVm = new ChannelsListViewModel(mwclvmLogger, this, Database, Twitch);
-        Router.Navigate.Execute(ChannelsListVm);
+        var mwclvmLogger = serviceProvider.GetRequiredService<ILogger<ChannelsPageViewModel>>();
+        ChannelsPageVm = new ChannelsPageViewModel(mwclvmLogger, this, Database, Twitch);
+        Router.Navigate.Execute(ChannelsPageVm);
     }
 
     private void OnUserLoginChanged(object? sender, EventArgs e)

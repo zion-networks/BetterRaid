@@ -1,0 +1,38 @@
+<reactiveUi:ReactiveUserControl x:TypeArguments="vm:SettingsPageViewModel"
+                                xmlns="https://github.com/avaloniaui"
+                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                                xmlns:reactiveUi="http://reactiveui.net"
+                                xmlns:vm="clr-namespace:BetterRaid.ViewModels"
+                                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                                x:Class="BetterRaid.Controls.SettingsPage"
+                                x:DataType="vm:SettingsPageViewModel">
+    <Grid>
+        <TextBlock Text="Settings Page"
+                   HorizontalAlignment="Stretch"
+                   VerticalAlignment="Stretch" />
+        
+        <Button Height="64"
+                Width="64"
+                CornerRadius="32"
+                Background="DodgerBlue"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                FontSize="32"
+                Content="&lt;"
+                Margin="0, 0, 15, 15"
+                Command="{Binding GoPageBackCommand}">
+            <Button.Styles>
+                <Style Selector="Button">
+                    <Setter Property="Background" Value="DodgerBlue" />
+                </Style>
+                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="CornflowerBlue" />
+                </Style>
+            </Button.Styles>
+        </Button>
+    </Grid>
+</reactiveUi:ReactiveUserControl>

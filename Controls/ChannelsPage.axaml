@@ -1,4 +1,4 @@
-<rx:ReactiveUserControl x:TypeArguments="vm:ChannelsListViewModel"
+<rx:ReactiveUserControl x:TypeArguments="vm:ChannelsPageViewModel"
                         xmlns="https://github.com/avaloniaui"
                         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
                         xmlns:vm="clr-namespace:BetterRaid.ViewModels"
@@ -6,8 +6,8 @@
                         xmlns:misc="clr-namespace:BetterRaid.Misc"
                         xmlns:converters="clr-namespace:BetterRaid.Converters"
                         xmlns:rx="http://reactiveui.net"
-                        x:Class="BetterRaid.Controls.ChannelsListControl"
-                        x:DataType="vm:ChannelsListViewModel">
+                        x:Class="BetterRaid.Controls.ChannelsPage"
+                        x:DataType="vm:ChannelsPageViewModel">
 
     <UserControl.Resources>
         <converters:ChannelOnlineColorConverter x:Key="ChannelOnlineColorConverter" />
@@ -15,89 +15,6 @@
     
     <Grid HorizontalAlignment="Stretch"
           VerticalAlignment="Stretch">
-        
-        <!-- Add Channel Popup -->
-        <Border HorizontalAlignment="Center"
-                VerticalAlignment="Center"
-                Width="300"
-                Height="150"
-                CornerRadius="10"
-                Background="White"
-                IsVisible="{Binding IsAddChannelPopupVisible, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
-
-            <Grid HorizontalAlignment="Stretch"
-                  VerticalAlignment="Stretch"
-                  ColumnDefinitions="*"
-                  RowDefinitions="40,*,50">
-
-                <TextBlock Grid.Row="0"
-                           Grid.Column="0"
-                           Text="Add new Channel"
-                           TextAlignment="Center"
-                           VerticalAlignment="Center"
-                           HorizontalAlignment="Center"
-                           FontWeight="Bold"
-                           Foreground="DodgerBlue" />
-
-                <TextBox Grid.Row="1"
-                         Grid.Column="0"
-                         Height="30"
-                         Text="{Binding NewChannelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
-                         Watermark="Channel Name"
-                         Margin="10" />
-
-                <StackPanel Grid.Row="2"
-                            Grid.Column="0"
-                            Orientation="Horizontal"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Stretch">
-
-                    <Button Content="Cancel"
-                            Command="{Binding ShowAddChannelPopup}"
-                            CommandParameter="{x:False}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            HorizontalContentAlignment="Center"
-                            Width="100"
-                            Height="30"
-                            Background="IndianRed"
-                            Margin="10">
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="IndianRed" />
-                            </Style>
-                            
-                            <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="LightCoral" />
-                            </Style>
-                        </Button.Styles>
-                    </Button>
-
-                    <Button Content="Add"
-                            Command="{Binding AddChannel}"
-                            CommandParameter="{Binding NewChannelName}"
-                            HorizontalAlignment="Center"
-                            VerticalAlignment="Center"
-                            HorizontalContentAlignment="Center"
-                            Width="100"
-                            Height="30"
-                            Background="DodgerBlue"
-                            Margin="10">
-                        
-                        <Button.Styles>
-                            <Style Selector="Button">
-                                <Setter Property="Background" Value="DodgerBlue" />
-                            </Style>
-                            
-                            <Style Selector="Button:pointerover /template/ ContentPresenter">
-                                <Setter Property="Background" Value="CornflowerBlue" />
-                            </Style>
-                        </Button.Styles>
-                        
-                    </Button>
-                </StackPanel>
-            </Grid>
-        </Border>
         
         <!-- Channels List -->
         <ScrollViewer HorizontalAlignment="Stretch"
@@ -209,7 +126,7 @@
                                     CornerRadius="12"
                                     Padding="0"
                                     Margin="0, 5, 5, 0"
-                                    Command="{Binding $parent[UserControl].((vm:ChannelsListViewModel)DataContext).RemoveChannelCommand}"
+                                    Command="{Binding $parent[UserControl].((vm:ChannelsPageViewModel)DataContext).RemoveChannelCommand}"
                                     CommandParameter="{Binding .}">
                                 <ai:AdvancedImage HorizontalAlignment="Stretch"
                                                   VerticalAlignment="Stretch"
@@ -245,5 +162,111 @@
                        VerticalAlignment="Stretch" />
             </Button.Content>
         </Button>
+        
+        <Button Height="64"
+                Width="64"
+                CornerRadius="32"
+                Background="DodgerBlue"
+                HorizontalAlignment="Right"
+                VerticalAlignment="Bottom"
+                HorizontalContentAlignment="Center"
+                VerticalContentAlignment="Center"
+                FontSize="32"
+                Content="&#9881;"
+                Margin="0, 0, 94, 15"
+                IsVisible="{Binding MainVm.IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, FallbackValue=False}"
+                Command="{Binding ShowSettingsPageCommand}">
+            <Button.Styles>
+                <Style Selector="Button">
+                    <Setter Property="Background" Value="DodgerBlue" />
+                </Style>
+                <Style Selector="Button:pointerover /template/ ContentPresenter">
+                    <Setter Property="Background" Value="CornflowerBlue" />
+                </Style>
+            </Button.Styles>
+        </Button>
+        
+        <!-- Add Channel Popup -->
+        <Border HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                Width="300"
+                Height="150"
+                CornerRadius="10"
+                Background="White"
+                IsVisible="{Binding IsAddChannelPopupVisible, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
+
+            <Grid HorizontalAlignment="Stretch"
+                  VerticalAlignment="Stretch"
+                  ColumnDefinitions="*"
+                  RowDefinitions="40,*,50">
+
+                <TextBlock Grid.Row="0"
+                           Grid.Column="0"
+                           Text="Add new Channel"
+                           TextAlignment="Center"
+                           VerticalAlignment="Center"
+                           HorizontalAlignment="Center"
+                           FontWeight="Bold"
+                           Foreground="DodgerBlue" />
+
+                <TextBox Grid.Row="1"
+                         Grid.Column="0"
+                         Height="30"
+                         Text="{Binding NewChannelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
+                         Watermark="Channel Name"
+                         Margin="10" />
+
+                <StackPanel Grid.Row="2"
+                            Grid.Column="0"
+                            Orientation="Horizontal"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Stretch">
+
+                    <Button Content="Cancel"
+                            Command="{Binding ShowAddChannelPopup}"
+                            CommandParameter="{x:False}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            Width="100"
+                            Height="30"
+                            Background="IndianRed"
+                            Margin="10">
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="IndianRed" />
+                            </Style>
+                            
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="LightCoral" />
+                            </Style>
+                        </Button.Styles>
+                    </Button>
+
+                    <Button Content="Add"
+                            Command="{Binding AddChannel}"
+                            CommandParameter="{Binding NewChannelName}"
+                            HorizontalAlignment="Center"
+                            VerticalAlignment="Center"
+                            HorizontalContentAlignment="Center"
+                            Width="100"
+                            Height="30"
+                            Background="DodgerBlue"
+                            Margin="10">
+                        
+                        <Button.Styles>
+                            <Style Selector="Button">
+                                <Setter Property="Background" Value="DodgerBlue" />
+                            </Style>
+                            
+                            <Style Selector="Button:pointerover /template/ ContentPresenter">
+                                <Setter Property="Background" Value="CornflowerBlue" />
+                            </Style>
+                        </Button.Styles>
+                        
+                    </Button>
+                </StackPanel>
+            </Grid>
+        </Border>
     </Grid>
 </rx:ReactiveUserControl>

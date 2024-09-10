@@ -14,8 +14,9 @@ public class RxViewLocator : IViewLocator
         
         return viewModel switch
         {
-            ChannelsListViewModel context => new ChannelsListControl { DataContext = context },
-            MainWindowViewModel context => new MainWindow { DataContext = context },
+            ChannelsPageViewModel ctx => new ChannelsPage { DataContext = ctx },
+            MainWindowViewModel ctx => new MainWindow { DataContext = ctx },
+            SettingsPageViewModel ctx => new SettingsPage { DataContext = ctx },
             _ => throw new ArgumentOutOfRangeException(nameof(viewModel))
         };
     }

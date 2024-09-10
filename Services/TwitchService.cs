@@ -91,12 +91,13 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         get => _userChannel;
         set
         {
-            if (_userChannel != null && _userChannel.Name.Equals(value?.Name))
+            if (_userChannel != null && _userChannel.Id?.Equals(value?.Id) == true)
                 return;
             
             if (SetField(ref _userChannel, value) is false)
                 return;
 
+            _userChannel = value;
             _userChannel?.UpdateChannelData(this);
             OnUserLoginChanged();
         }
@@ -481,10 +482,16 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
             return;
 
         // Only update when should affect the sorting or available items in the list
-        if (e.PropertyName != nameof(TwitchChannel.IsLive))
-            return;
-
-        TwitchChannelUpdated?.Invoke(this, channel);
+        //switch (e.PropertyName)
+        //{
+        //    case nameof(TwitchChannel.IsLive):
+        //    case nameof(TwitchChannel.ViewerCount):
+        //        TwitchChannelUpdated?.Invoke(this, channel);
+        //        break;
+        //    
+        //    default:
+        //        return;
+        //}
     }
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)

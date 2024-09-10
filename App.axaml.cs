@@ -69,7 +69,7 @@ public class App : Application
         services.AddSingleton<IWebToolsService, WebToolsService>();
         services.AddSingleton<IDatabaseService, DatabaseService>();
         services.AddSingleton<IDispatcherService, DispatcherService>(_ => new DispatcherService(Dispatcher.UIThread));
-        services.AddTransient<ChannelsListViewModel>();
+        services.AddTransient<ChannelsPageViewModel>();
         services.AddTransient<MainWindowViewModel>();
 
         return services.BuildServiceProvider();

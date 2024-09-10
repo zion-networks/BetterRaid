@@ -82,7 +82,7 @@
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"
               Grid.Row="1"
-              IsVisible="{Binding ChannelsListVm.SelectedChannel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullCheckBooleanConverter}}"
+              IsVisible="{Binding ChannelsPageVm.SelectedChannel, Mode=OneWay, UpdateSourceTrigger=PropertyChanged, Converter={StaticResource NullCheckBooleanConverter}}"
               ColumnDefinitions="*"
               RowDefinitions="50">
 
@@ -134,7 +134,7 @@
                 Margin="10, 10"
                 IsVisible="{Binding !Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                 Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand, FallbackValue={x:Null}}"
-                CommandParameter="{Binding ChannelsListVm.SelectedChannel}">
+                CommandParameter="{Binding ChannelsPageVm.SelectedChannel}">
                 <Button.Content>
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Stretch"

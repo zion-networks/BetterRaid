@@ -3,6 +3,7 @@ using System.Collections.ObjectModel;
 using System.Linq;
 using System.Reactive;
 using System.Reactive.Linq;
+using System.Threading;
 using System.Threading.Tasks;
 using BetterRaid.Models;
 using BetterRaid.Services;
@@ -13,7 +14,7 @@ using ReactiveUI;
 
 namespace BetterRaid.ViewModels;
 
-public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
+public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
 {
     #region Private Fields
     
@@ -22,13 +23,15 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
     private TwitchChannel? _selectedChannel;
     private bool _isAddChannelPopupVisible;
     private string _newChannelName;
+    private Task _updateChannelsListTask;
+    private CancellationTokenSource _updateChannelsListCts = new();
     
     #endregion Private Fields
     
     #region Services
     
-    private ILogger<ChannelsListViewModel> Logger { get; set; }
-    private MainWindowViewModel? MainVm { get; set; }
+    private ILogger<ChannelsPageViewModel> Logger { get; set; }
+    public MainWindowViewModel? MainVm { get; set; }
     public ITwitchService Twitch { get; set; }
     public IDatabaseService Database { get; set; }
     
@@ -38,6 +41,7 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
     
     public ReactiveCommand<TwitchChannel, Unit> RemoveChannelCommand { get; }
     public ReactiveCommand<bool, Unit> ShowAddChannelPopupCommand { get; }
+    public ReactiveCommand<Unit, Unit> ShowSettingsPageCommand { get; }
     
     #endregion Reactive Commands
     
@@ -69,9 +73,9 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
     
     #endregion Public Properties
 
-    public ChannelsListViewModel
+    public ChannelsPageViewModel
         (
-            ILogger<ChannelsListViewModel> logger,
+            ILogger<ChannelsPageViewModel> logger,
             MainWindowViewModel mainVm,
             IDatabaseService db,
             ITwitchService twitch
@@ -88,7 +92,7 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
         if (MainVm is null)
         {
             Logger.LogError("Failed to initialize {ViewModel} because {MainVm} is null",
-                nameof(ChannelsListViewModel), nameof(MainVm));
+                nameof(ChannelsPageViewModel), nameof(MainVm));
             return;
         }
         
@@ -115,6 +119,25 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
             execute: ShowAddChannelPopup,
             canExecute: this.WhenAny(x => x.Database.Database, x => x.Value != null)
         );
+        
+        ShowSettingsPageCommand = ReactiveCommand.CreateFromTask(async () =>
+        {
+            await MainVm.Router.Navigate.Execute(new SettingsPageViewModel(MainVm));
+        });
+
+        _updateChannelsListTask = Task.Run(() =>
+        {
+            while (_updateChannelsListCts.IsCancellationRequested == false)
+            {
+                ReloadChannels();
+                Task.Delay(10_000).Wait();
+            }
+        }, _updateChannelsListCts.Token);
+    }
+    
+    ~ChannelsPageViewModel()
+    {
+        _updateChannelsListCts.Cancel();
     }
 
     private void InitializeChannels()
@@ -149,6 +172,8 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
             Logger.LogError("Database is null");
             return;
         }
+        
+        Logger.LogDebug("Reloading channels");
         
         _sourceList.Edit(innerList =>
         {
@@ -210,6 +235,6 @@ public class ChannelsListViewModel : ViewModelBase, IRoutableViewModel
 
     private void OnTwitchChannelUpdated(object? sender, TwitchChannel e)
     {
-        ReloadChannels();
+        //ReloadChannels();
     }
 }

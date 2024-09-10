@@ -5,9 +5,9 @@ using ReactiveUI;
 
 namespace BetterRaid.Controls;
 
-public partial class ChannelsListControl : ReactiveUserControl<ChannelsListViewModel>
+public partial class SettingsPage : ReactiveUserControl<SettingsPageViewModel>
 {
-    public ChannelsListControl()
+    public SettingsPage()
     {
         this.WhenActivated(_ => { });
         AvaloniaXamlLoader.Load(this);
