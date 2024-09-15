@@ -40,23 +40,49 @@
                                    FallbackValue={x:Static misc:Constants.ChannelPlaceholderImageUrl},
                                    TargetNullValue={x:Static misc:Constants.ChannelPlaceholderImageUrl}}" />
 
+            <!-- User Channel with Viewer Count -->
             <TextBlock VerticalAlignment="Center"
-                       DataContext="{Binding Twitch.UserChannel}"
                        Margin="5, 0, 0, 0"
                        FontWeight="Bold">
+                <TextBlock.IsVisible>
+                    <Binding Path="Database.Database.ShowUserViewerCount"
+                             FallbackValue="False"
+                             UpdateSourceTrigger="PropertyChanged"
+                             Mode="OneWay" />
+                </TextBlock.IsVisible>
                 <TextBlock.Text>
-                    <MultiBinding StringFormat="{}{0} ({1})">
-                        <Binding Path="DisplayName"
+                    <MultiBinding StringFormat="{}{0}{1}">
+                        <Binding Path="Twitch.UserChannel.DisplayName"
                                  FallbackValue="-"
                                  TargetNullValue="-"
                                  Mode="OneWay"
                                  UpdateSourceTrigger="PropertyChanged" />
-                        <Binding Path="ViewerCount"
-                                 FallbackValue="Offline"
-                                 TargetNullValue="Offline"
+                        <Binding Path="Twitch.UserChannel.ViewerCount"
+                                 FallbackValue=" (Offline)"
+                                 TargetNullValue=" (Offline)"
                                  Mode="OneWay"
+                                 StringFormat=" ({0})"
                                  UpdateSourceTrigger="PropertyChanged" />
                     </MultiBinding>
+                </TextBlock.Text>
+            </TextBlock>
+            
+            <!-- User Channel without Viewer Count -->
+            <TextBlock VerticalAlignment="Center"
+                       Margin="5, 0, 0, 0"
+                       FontWeight="Bold">
+                <TextBlock.IsVisible>
+                    <Binding Path="!Database.Database.ShowUserViewerCount"
+                             FallbackValue="False"
+                             UpdateSourceTrigger="PropertyChanged"
+                             Mode="OneWay" />
+                </TextBlock.IsVisible>
+                <TextBlock.Text>
+                    <Binding Path="Twitch.UserChannel.DisplayName"
+                             FallbackValue="-"
+                             TargetNullValue="-"
+                             Mode="OneWay"
+                             UpdateSourceTrigger="PropertyChanged" />
                 </TextBlock.Text>
             </TextBlock>
         </StackPanel>

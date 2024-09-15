@@ -123,7 +123,7 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
         
         ShowSettingsPageCommand = ReactiveCommand.CreateFromTask(async () =>
         {
-            await MainVm.Router.Navigate.Execute(new SettingsPageViewModel(MainVm));
+            await MainVm.Router.Navigate.Execute(new SettingsPageViewModel(MainVm, Database));
         });
 
         _updateChannelsListTask = Task.Run(() =>

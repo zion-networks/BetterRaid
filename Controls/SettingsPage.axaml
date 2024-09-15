@@ -8,31 +8,41 @@
                                 mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
                                 x:Class="BetterRaid.Controls.SettingsPage"
                                 x:DataType="vm:SettingsPageViewModel">
-    <Grid>
-        <TextBlock Text="Settings Page"
-                   HorizontalAlignment="Stretch"
-                   VerticalAlignment="Stretch" />
+    <Grid ColumnDefinitions="Auto,*,*"
+          RowDefinitions="Auto, Auto">
         
-        <Button Height="64"
-                Width="64"
-                CornerRadius="32"
-                Background="DodgerBlue"
-                HorizontalAlignment="Right"
-                VerticalAlignment="Bottom"
+        <Button Grid.Column="0"
+                Grid.Row="0"
+                Height="32"
+                Width="32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
                 HorizontalContentAlignment="Center"
-                VerticalContentAlignment="Center"
-                FontSize="32"
+                
                 Content="&lt;"
-                Margin="0, 0, 15, 15"
-                Command="{Binding GoPageBackCommand}">
-            <Button.Styles>
-                <Style Selector="Button">
-                    <Setter Property="Background" Value="DodgerBlue" />
-                </Style>
-                <Style Selector="Button:pointerover /template/ ContentPresenter">
-                    <Setter Property="Background" Value="CornflowerBlue" />
-                </Style>
-            </Button.Styles>
-        </Button>
+                Command="{Binding GoPageBackCommand}" />
+        
+        <TextBlock Grid.Column="1"
+                   Grid.ColumnSpan="2"
+                   Grid.Row="0"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"
+                   FontSize="24"
+                   TextDecorations="Underline"
+                   Margin="10, 0, 0, 10"
+                   Text="Settings" />
+        
+        <Label Grid.Column="0"
+               Grid.ColumnSpan="2"
+               Grid.Row="1"
+               Content="Show/Hide your Viewers" />
+        
+        <ToggleSwitch Grid.Column="2"
+                      Grid.Row="1"
+                      IsChecked="{Binding 
+                      Database.Database.ShowUserViewerCount,
+                      Mode=TwoWay,
+                      UpdateSourceTrigger=PropertyChanged,
+                      FallbackValue={x:True}}" />
     </Grid>
 </reactiveUi:ReactiveUserControl>

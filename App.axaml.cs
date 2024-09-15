@@ -115,7 +115,9 @@ public class App : Application
         try
         {
             var db = _serviceProvider.GetRequiredService<IDatabaseService>();
-            db.Save();
+            
+            if (db.AutoSave)
+                db.Save();
         }
         catch (Exception e)
         {

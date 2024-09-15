@@ -24,7 +24,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     private ILogger<MainWindowViewModel> Logger { get; }
     public ITwitchService Twitch { get; }
     private IWebToolsService WebTools { get; }
-    private IDatabaseService Database { get; }
+    public IDatabaseService Database { get; }
 
     #endregion
     

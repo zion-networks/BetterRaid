@@ -342,8 +342,9 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     public async Task RegisterForEventsAsync(IEnumerable<TwitchChannel> channels)
     {
         ArgumentNullException.ThrowIfNull(channels, nameof(channels));
-        
-        var tasks = channels.Select(channel =>
+
+        var channelsArr = channels as TwitchChannel[] ?? channels.ToArray();
+        var tasks = channelsArr.Select(channel =>
         {
             return Task.Run(() =>
             {
@@ -356,12 +357,16 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
                 TwitchEvents.OnStreamUp += channel.OnStreamUp;
                 TwitchEvents.OnStreamDown += channel.OnStreamDown;
                 TwitchEvents.OnViewCount += channel.OnViewCount;
-
-                TwitchEvents.ListenToVideoPlayback(channel.Id);
             });
         });
 
-        await Task.WhenAll(tasks).ContinueWith(_ => TwitchEvents.SendTopics(AccessToken));
+        await Task.WhenAll(tasks).ContinueWith(_ =>
+        {
+            foreach (var c in channelsArr)
+                TwitchEvents.ListenToVideoPlayback(c.Id);
+
+            TwitchEvents.SendTopics(AccessToken);
+        });
     }
 
     public async Task LoadChannelDataAsync(TwitchChannel channel)
