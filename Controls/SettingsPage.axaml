@@ -9,7 +9,7 @@
                                 x:Class="BetterRaid.Controls.SettingsPage"
                                 x:DataType="vm:SettingsPageViewModel">
     <Grid ColumnDefinitions="Auto,*,*"
-          RowDefinitions="Auto, Auto">
+          RowDefinitions="Auto, Auto, Auto">
         
         <Button Grid.Column="0"
                 Grid.Row="0"
@@ -41,6 +41,19 @@
                       Grid.Row="1"
                       IsChecked="{Binding 
                       Database.Database.ShowUserViewerCount,
+                      Mode=TwoWay,
+                      UpdateSourceTrigger=PropertyChanged,
+                      FallbackValue={x:True}}" />
+        
+        <Label Grid.Column="0"
+               Grid.ColumnSpan="2"
+               Grid.Row="2"
+               Content="Auto-Visit Channel on Raid" />
+        
+        <ToggleSwitch Grid.Column="2"
+                      Grid.Row="2"
+                      IsChecked="{Binding 
+                      Database.Database.AutoVisitChannelOnRaid,
                       Mode=TwoWay,
                       UpdateSourceTrigger=PropertyChanged,
                       FallbackValue={x:True}}" />

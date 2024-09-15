@@ -11,8 +11,9 @@ public class BetterRaidDatabase : INotifyPropertyChanged
     #region Private Fields
     
     private bool _onlyOnline;
-    private bool _showUserViewerCount;
-    
+    private bool _showUserViewerCount = true;
+    private bool _autoVisitChannelOnRaid = true;
+
     #endregion Private Fields
 
     #region Events
@@ -35,12 +36,18 @@ public class BetterRaidDatabase : INotifyPropertyChanged
         set => SetField(ref _showUserViewerCount, value);
     }
 
+    public bool AutoVisitChannelOnRaid
+    {
+        get => _autoVisitChannelOnRaid;
+        set => SetField(ref _autoVisitChannelOnRaid, value);
+    }
+
     #endregion Settings
     
     #region Data
     
     public List<TwitchChannel> Channels { get; set; } = [];
-    
+
     #endregion Data
 
     #region Event Handlers

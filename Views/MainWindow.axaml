@@ -66,7 +66,7 @@
                     </MultiBinding>
                 </TextBlock.Text>
             </TextBlock>
-            
+
             <!-- User Channel without Viewer Count -->
             <TextBlock VerticalAlignment="Center"
                        Margin="5, 0, 0, 0"
@@ -104,7 +104,7 @@
                      HorizontalAlignment="Right" />
 
         </StackPanel>
-        
+
         <Grid Grid.Column="0"
               Grid.ColumnSpan="2"
               Grid.Row="1"
@@ -137,6 +137,43 @@
                 </TextBlock.Text>
             </TextBlock>
 
+            <Button HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Height="30"
+                    Width="120"
+                    Margin="140, 10"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).ChannelsPageVm.VisitChannelCommand, FallbackValue={x:Null}}"
+                    CommandParameter="{Binding ChannelsPageVm.SelectedChannel}">
+
+                <Button.Styles>
+                    <Style Selector="Button">
+                        <Setter Property="Background" Value="#6441a5" />
+                    </Style>
+                    <Style Selector="Button:pointerover /template/ ContentPresenter">
+                        <Setter Property="Background" Value="#6C4CA5" />
+                    </Style>
+                </Button.Styles>
+
+                <Button.Content>
+                    <StackPanel Orientation="Horizontal"
+                                HorizontalAlignment="Stretch"
+                                VerticalAlignment="Stretch">
+
+                        <TextBlock Text="Visit"
+                                   Margin="0, 0, 5, 0" />
+
+                        <Image Source="avares://BetterRaid/Assets/glitch_flat_white.png"
+                               Width="16"
+                               Height="16"
+                               VerticalAlignment="Center"
+                               Margin="5, 0, 0, 0" />
+
+                    </StackPanel>
+                </Button.Content>
+            </Button>
+
             <Button Content="Cancel Raid"
                     HorizontalAlignment="Right"
                     VerticalAlignment="Center"
@@ -149,18 +186,17 @@
                     IsVisible="{Binding Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
                     Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StopRaidCommand, FallbackValue={x:Null}}" />
 
-            <Button
-                HorizontalAlignment="Right"
-                VerticalAlignment="Center"
-                HorizontalContentAlignment="Center"
-                VerticalContentAlignment="Center"
-                Background="DarkGreen"
-                Height="30"
-                Width="120"
-                Margin="10, 10"
-                IsVisible="{Binding !Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand, FallbackValue={x:Null}}"
-                CommandParameter="{Binding ChannelsPageVm.SelectedChannel}">
+            <Button HorizontalAlignment="Right"
+                    VerticalAlignment="Center"
+                    HorizontalContentAlignment="Center"
+                    VerticalContentAlignment="Center"
+                    Background="DarkGreen"
+                    Height="30"
+                    Width="120"
+                    Margin="10, 10"
+                    IsVisible="{Binding !Twitch.IsRaidStarted, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                    Command="{Binding $parent[Window].((vm:MainWindowViewModel)DataContext).Twitch.StartRaidCommand, FallbackValue={x:Null}}"
+                    CommandParameter="{Binding ChannelsPageVm.SelectedChannel}">
                 <Button.Content>
                     <StackPanel Orientation="Horizontal"
                                 HorizontalAlignment="Stretch"
@@ -178,9 +214,9 @@
 
         <Panel Grid.Column="0"
                Grid.ColumnSpan="2"
-               Grid.Row="2" 
+               Grid.Row="2"
                IsVisible="{Binding !IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
-            
+
             <Button HorizontalAlignment="Center"
                     VerticalAlignment="Center"
                     Width="200"
@@ -210,14 +246,14 @@
 
             </Button>
         </Panel>
-        
-        <rxui:RoutedViewHost  Grid.Column="0"
-                              Grid.ColumnSpan="2"
-                              Grid.Row="2"
-                              HorizontalAlignment="Stretch"
-                              VerticalAlignment="Stretch"
-                              IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
-                              Router="{Binding Router}">
+
+        <rxui:RoutedViewHost Grid.Column="0"
+                             Grid.ColumnSpan="2"
+                             Grid.Row="2"
+                             HorizontalAlignment="Stretch"
+                             VerticalAlignment="Stretch"
+                             IsVisible="{Binding IsLoggedIn, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}"
+                             Router="{Binding Router}">
             <rxui:RoutedViewHost.ViewLocator>
                 <betterRaid:RxViewLocator />
             </rxui:RoutedViewHost.ViewLocator>

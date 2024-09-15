@@ -94,7 +94,13 @@ public class DatabaseService : IDatabaseService, INotifyPropertyChanged
             case false when createIfNotExist:
                 _logger.LogWarning("Database file not found, creating new database");
 
-                Database = new BetterRaidDatabase();
+                Database = new BetterRaidDatabase
+                {
+                    AutoVisitChannelOnRaid = true,
+                    OnlyOnline = false,
+                    ShowUserViewerCount = true
+                };
+                
                 Database.Channels.Add(new TwitchChannel("ZionNetworks"));
                 Save(path);
             

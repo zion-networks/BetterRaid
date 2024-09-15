@@ -1,9 +1,11 @@
 ﻿using System;
 using System.Collections.ObjectModel;
+using System.Reactive;
 using System.Threading;
 using Avalonia.Controls;
 using BetterRaid.Extensions;
 using BetterRaid.Models;
+using BetterRaid.Models.Events;
 using BetterRaid.Services;
 using BetterRaid.Views;
 using DynamicData;
@@ -67,10 +69,21 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         
         this.RaisePropertyChanged(nameof(IsLoggedIn));
         Twitch.UserLoginChanged += OnUserLoginChanged;
+        Twitch.RaidStarted += OnRaidStarted;
         
         var mwclvmLogger = serviceProvider.GetRequiredService<ILogger<ChannelsPageViewModel>>();
-        ChannelsPageVm = new ChannelsPageViewModel(mwclvmLogger, this, Database, Twitch);
+        ChannelsPageVm = new ChannelsPageViewModel(mwclvmLogger, this, Database, Twitch, WebTools);
         Router.Navigate.Execute(ChannelsPageVm);
+    }
+
+    private void OnRaidStarted(object? sender, RaidStartedEventArgs e)
+    {
+        Logger.LogInformation("Raid started at {DateTime} to {ChannelName}", e.RaidTime, e.Target.DisplayName);
+
+        if (Database.Database?.AutoVisitChannelOnRaid == true)
+        {
+            WebTools.OpenUrl($"https://twitch.tv/{e.Target.Name}");
+        }
     }
 
     private void OnUserLoginChanged(object? sender, EventArgs e)

@@ -34,6 +34,7 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
     public MainWindowViewModel? MainVm { get; set; }
     public ITwitchService Twitch { get; set; }
     public IDatabaseService Database { get; set; }
+    public IWebToolsService WebTools { get; set; }
     
     #endregion Services
     
@@ -42,6 +43,8 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
     public ReactiveCommand<TwitchChannel, Unit> RemoveChannelCommand { get; }
     public ReactiveCommand<bool, Unit> ShowAddChannelPopupCommand { get; }
     public ReactiveCommand<Unit, Unit> ShowSettingsPageCommand { get; }
+    public ReactiveCommand<TwitchChannel, Unit> VisitChannelCommand { get; }
+
     
     #endregion Reactive Commands
     
@@ -79,7 +82,8 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
             ILogger<ChannelsPageViewModel> logger,
             MainWindowViewModel mainVm,
             IDatabaseService db,
-            ITwitchService twitch
+            ITwitchService twitch,
+            IWebToolsService webTools
         )
     {
         HostScreen = mainVm;
@@ -87,6 +91,7 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
         Logger = logger;
         Database = db;
         Twitch = twitch;
+        WebTools = webTools;
         
         Twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
 
@@ -132,6 +137,9 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
         {
             await MainVm.Router.Navigate.Execute(new SettingsPageViewModel(MainVm, Database));
         });
+        
+        VisitChannelCommand = ReactiveCommand.Create<TwitchChannel>(
+            execute: channel => WebTools.OpenUrl($"https://twitch.tv/{channel.Name}"));
 
         _updateChannelsListTask = Task.Run(() =>
         {
@@ -142,7 +150,8 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
             }
         }, _updateChannelsListCts.Token);
     }
-    
+
+
     ~ChannelsPageViewModel()
     {
         _updateChannelsListCts.Cancel();
