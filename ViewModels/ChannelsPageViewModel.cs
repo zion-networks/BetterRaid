@@ -47,6 +47,7 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
     
     #region Public Properties
     
+    public bool IsInitialising { get; private set; } = true;
     public string? UrlPathSegment { get; } = Guid.NewGuid().ToString().Substring(0, 5);
     public IScreen HostScreen { get; }
     
@@ -149,24 +150,25 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
         }
 
         Logger.LogDebug("Initializing {ChannelCount} channels", Database.Database.Channels.Count);
-        var updateTasks = Database.Database.Channels.Select(c =>
+        
+        Task.Run(() =>
         {
-            return Task.Run(() =>
-            {
-                c.UpdateChannelData(Twitch);
-                Twitch.RegisterForEvents(c);
-            });
-        });
-
-        Task.WhenAll(updateTasks).ContinueWith(_ =>
-        {
-            Logger.LogDebug("Finished initializing channels");
-            ReloadChannels();
+            return Twitch
+                .LoadChannelDataAsync(Database.Database.Channels)
+                .ContinueWith(_ => Twitch.RegisterForEventsAsync(Database.Database.Channels))
+                .ContinueWith(_ =>
+                {
+                    IsInitialising = false;
+                    ReloadChannels();
+                });
         });
     }
 
     private void ReloadChannels()
     {
+        if (IsInitialising)
+            return;
+        
         if (Database.Database == null)
         {
             Logger.LogError("Database is null");

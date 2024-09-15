@@ -5,8 +5,9 @@
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>Assets/logo.ico</ApplicationIcon>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <IsPackable>false</IsPackable>
+    <Company>Zion Networks UG (haftungsbeschränkt)</Company>
   </PropertyGroup>
 
   <ItemGroup>
