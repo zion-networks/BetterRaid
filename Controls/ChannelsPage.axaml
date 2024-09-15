@@ -193,6 +193,7 @@
                 Height="150"
                 CornerRadius="10"
                 Background="White"
+                PropertyChanged="OnAddChannelPanelPropertyChanged"
                 IsVisible="{Binding IsAddChannelPopupVisible, Mode=OneWay, UpdateSourceTrigger=PropertyChanged}">
 
             <Grid HorizontalAlignment="Stretch"
@@ -211,9 +212,11 @@
 
                 <TextBox Grid.Row="1"
                          Grid.Column="0"
+                         x:Name="ChannelNameTextBox"
                          Height="30"
                          Text="{Binding NewChannelName, Mode=TwoWay, UpdateSourceTrigger=PropertyChanged}"
                          Watermark="Channel Name"
+                         Focusable="True"
                          Margin="10" />
 
                 <StackPanel Grid.Row="2"
