@@ -96,11 +96,18 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
                 nameof(ChannelsPageViewModel), nameof(MainVm));
             return;
         }
+
+        var filterObservable = this.WhenAnyValue(
+            x => x.MainVm!.Filter,
+            x => x.MainVm!.OnlyOnline,
+            (filter, onlyOnline) => new { Filter = filter, OnlyOnline = onlyOnline });
         
         _sourceList = new SourceList<TwitchChannel>();
         _sourceList.Connect()
-            .Filter(channel => channel.Name.Contains(MainVm.Filter,
-                StringComparison.OrdinalIgnoreCase))
+            .Filter(filterObservable.Select(f => (Func<TwitchChannel, bool>)(channel => channel.DisplayName?.Contains(
+                    f.Filter,
+                    StringComparison.OrdinalIgnoreCase) == true &&
+                (!f.OnlyOnline || channel.IsLive))))
             .Filter(channel => !MainVm.OnlyOnline || channel.IsLive)
             .Sort(SortExpressionComparer<TwitchChannel>
                 .Descending(channel => channel.ViewerCount)
@@ -155,12 +162,12 @@ public class ChannelsPageViewModel : ViewModelBase, IRoutableViewModel
         {
             return Twitch
                 .LoadChannelDataAsync(Database.Database.Channels)
-                .ContinueWith(_ => Twitch.RegisterForEventsAsync(Database.Database.Channels))
                 .ContinueWith(_ =>
                 {
                     IsInitialising = false;
                     ReloadChannels();
-                });
+                })
+                .ContinueWith(_ => Twitch.RegisterForEventsAsync(Database.Database.Channels));
         });
     }
 
