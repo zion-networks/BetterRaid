@@ -7,6 +7,7 @@ using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BetterRaid.Misc;
 using BetterRaid.Models;
+using BetterRaid.Models.Events;
 using Microsoft.Extensions.Logging;
 using TwitchLib.Api;
 using TwitchLib.Api.Helix.Models.Users.GetUsers;
@@ -40,6 +41,7 @@ public interface ITwitchService
     Task LoadChannelDataAsync(List<TwitchChannel> channels);
     public void UnregisterFromEvents(TwitchChannel channel);
 
+    public event EventHandler<RaidStartedEventArgs> RaidStarted;
     public event EventHandler<EventArgs>? UserLoginChanged;
     public event EventHandler<TwitchChannel>? TwitchChannelUpdated;
     public event PropertyChangingEventHandler? PropertyChanging;
@@ -115,6 +117,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     public event PropertyChangingEventHandler? PropertyChanging;
     public event PropertyChangedEventHandler? PropertyChanged;
 
+    public event EventHandler<RaidStartedEventArgs> RaidStarted;
     public event EventHandler<EventArgs>? UserLoginChanged;
     public event EventHandler<TwitchChannel>? TwitchChannelUpdated;
 
@@ -454,6 +457,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
                 await Task.Delay(100);
             }
         });
+        
+        OnRaidStarted(new RaidStartedEventArgs(_raidStartTime, to));
     }
 
     public void StartRaidCommand(TwitchChannel? channel)
@@ -614,5 +619,10 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         OnPropertyChanged(propertyName);
 
         return true;
+    }
+
+    private void OnRaidStarted(RaidStartedEventArgs e)
+    {
+        RaidStarted?.Invoke(this, e);
     }
 }
