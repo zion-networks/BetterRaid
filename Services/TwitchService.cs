@@ -27,7 +27,6 @@ public interface ITwitchService
     
     public Task ConnectApiAsync(string clientId, string accessToken);
     public void SaveAccessToken();
-    public string GetOAuthUrl();
     public bool CanStartRaidCommand(TwitchChannel? channel);
     public void StartRaidCommand(TwitchChannel? channel);
     public void StopRaid();
@@ -411,17 +410,6 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         TwitchEvents.ListenToVideoPlayback(channel.Id);
 
         TwitchEvents.SendTopics(AccessToken, true);
-    }
-
-    public string GetOAuthUrl()
-    {
-        var scopes = string.Join("+", Constants.TwitchOAuthScopes);
-
-        return $"https://id.twitch.tv/oauth2/authorize"
-               + $"?client_id={Constants.TwitchClientId}"
-               + $"&redirect_uri={Constants.TwitchOAuthRedirectUrl}"
-               + $"&response_type={Constants.TwitchOAuthResponseType}"
-               + $"&scope={scopes}";
     }
 
     public bool CanStartRaidCommand(TwitchChannel? channel)
