@@ -33,6 +33,11 @@ public interface ITwitchService
     public void StopRaidCommand();
     public void OpenChannelCommand(TwitchChannel? channel);
     public void RegisterForEvents(TwitchChannel channel);
+    public Task RegisterForEventsAsync(TwitchChannel channel);
+    public void RegisterForEvents(IEnumerable<TwitchChannel> channels);
+    public Task RegisterForEventsAsync(IEnumerable<TwitchChannel> channels);
+    public Task LoadChannelDataAsync(TwitchChannel channel);
+    Task LoadChannelDataAsync(List<TwitchChannel> channels);
     public void UnregisterFromEvents(TwitchChannel channel);
 
     public event EventHandler<EventArgs>? UserLoginChanged;
@@ -90,18 +95,25 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         get => _userChannel;
         set
         {
-            if (_userChannel != null && _userChannel.Name.Equals(value?.Name) == true)
+            if (_userChannel != null && _userChannel.Id?.Equals(value?.Id) == true)
+                return;
+            
+            if (SetField(ref _userChannel, value) is false)
                 return;
 
-            SetField(ref _userChannel, value);
-
+            _userChannel = value;
             _userChannel?.UpdateChannelData(this);
-            OnOnUserLoginChanged();
+            OnUserLoginChanged();
         }
     }
 
+    private ILogger<TwitchChannel> ChannelLogger { get; set; }
+    
     public TwitchAPI TwitchApi { get; }
     public TwitchPubSub TwitchEvents { get; }
+
+    public event PropertyChangingEventHandler? PropertyChanging;
+    public event PropertyChangedEventHandler? PropertyChanged;
 
     public event EventHandler<EventArgs>? UserLoginChanged;
     public event EventHandler<TwitchChannel>? TwitchChannelUpdated;
@@ -118,10 +130,14 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         remove => TwitchEvents.OnStreamUp -= value;
     }
 
-    public TwitchService(ILogger<TwitchService> logger, IWebToolsService webTools)
+    public TwitchService(
+        ILogger<TwitchService> logger,
+        ILogger<TwitchChannel> channelLogger,
+        IWebToolsService webTools)
     {
         _logger = logger;
         _webTools = webTools;
+        ChannelLogger = channelLogger;
 
         TwitchApi = new TwitchAPI();
         TwitchEvents = new TwitchPubSub();
@@ -129,38 +145,15 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (TryLoadAccessToken(out var token))
         {
             _logger.LogInformation("Found access token.");
-            Task.Run(() => ConnectApiAsync(Constants.TwitchClientId, token))
-                .ContinueWith(_ => ConnectTwitchEvents());
+            
+            // Called synchronously, to make sure everything is set up before the app starts
+            ConnectApiAsync(Constants.TwitchClientId, token).Wait();
+            ConnectTwitchEventsAsync().Wait();
         }
         else
         {
             _logger.LogInformation("No access token found.");
         }
-    }
-
-    private async Task ConnectTwitchEvents()
-    {
-        if (UserChannel == null || User == null)
-            return;
-
-        _logger.LogInformation("Connecting to Twitch Events ...");
-
-        TwitchEvents.OnRaidGo += OnUserRaidGo;
-        TwitchEvents.OnRaidUpdateV2 += OnUserRaidUpdate;
-        TwitchEvents.OnStreamUp += OnUserStreamUp;
-        TwitchEvents.OnStreamDown += OnUserStreamDown;
-        TwitchEvents.OnViewCount += OnViewCount;
-        TwitchEvents.OnLog += OnPubSubLog;
-        TwitchEvents.OnPubSubServiceError += OnPubSubServiceError;
-        TwitchEvents.OnPubSubServiceConnected += OnPubSubServiceConnected;
-        TwitchEvents.OnPubSubServiceClosed += OnPubSubServiceClosed;
-
-        TwitchEvents.ListenToVideoPlayback(UserChannel.BroadcasterId);
-        TwitchEvents.ListenToRaid(UserChannel.BroadcasterId);
-
-        TwitchEvents.Connect();
-
-        await Task.CompletedTask;
     }
 
     public async Task ConnectApiAsync(string clientId, string accessToken)
@@ -203,6 +196,34 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
             _logger.LogError("Could not connect to Twitch API.");
         }
 
+        await Task.CompletedTask;
+    }
+
+    private async Task ConnectTwitchEventsAsync()
+    {
+        if (UserChannel == null || User == null)
+        {
+            _logger.LogError("Could not connect to Twitch Events: User or UserChannel is null.");
+            return;
+        }
+
+        _logger.LogInformation("Connecting to Twitch Events ...");
+
+        TwitchEvents.OnRaidGo += OnUserRaidGo;
+        TwitchEvents.OnRaidUpdateV2 += OnUserRaidUpdate;
+        TwitchEvents.OnStreamUp += OnUserStreamUp;
+        TwitchEvents.OnStreamDown += OnUserStreamDown;
+        TwitchEvents.OnViewCount += OnViewCount;
+        TwitchEvents.OnLog += OnPubSubLog;
+        TwitchEvents.OnPubSubServiceError += OnPubSubServiceError;
+        TwitchEvents.OnPubSubServiceConnected += OnPubSubServiceConnected;
+        TwitchEvents.OnPubSubServiceClosed += OnPubSubServiceClosed;
+
+        TwitchEvents.ListenToVideoPlayback(UserChannel.BroadcasterId);
+        TwitchEvents.ListenToRaid(UserChannel.BroadcasterId);
+
+        TwitchEvents.Connect();
+        
         await Task.CompletedTask;
     }
 
@@ -252,7 +273,7 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         if (User == null)
             return false;
 
-        channel = new TwitchChannel(User.Login);
+        channel = new TwitchChannel(User.Login, ChannelLogger);
         channel.UpdateChannelData(this);
 
         return true;
@@ -260,6 +281,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
 
     public void RegisterForEvents(TwitchChannel channel)
     {
+        ArgumentNullException.ThrowIfNull(channel, nameof(channel));
+        
         _logger.LogDebug("Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...",
             channel.Name, channel.BroadcasterId);
 
@@ -272,6 +295,105 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         TwitchEvents.ListenToVideoPlayback(channel.Id);
 
         TwitchEvents.SendTopics(AccessToken);
+    }
+
+    public async Task RegisterForEventsAsync(TwitchChannel channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel, nameof(channel));
+
+        await Task.Run(() =>
+        {
+            _logger.LogDebug("Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...",
+                channel.Name, channel.BroadcasterId);
+
+            channel.PropertyChanged += OnTwitchChannelUpdated;
+
+            TwitchEvents.OnStreamUp += channel.OnStreamUp;
+            TwitchEvents.OnStreamDown += channel.OnStreamDown;
+            TwitchEvents.OnViewCount += channel.OnViewCount;
+
+            TwitchEvents.ListenToVideoPlayback(channel.Id);
+            return Task.CompletedTask;
+        }).ContinueWith(_ => TwitchEvents.SendTopics(AccessToken));
+    }
+
+    public void RegisterForEvents(IEnumerable<TwitchChannel> channels)
+    {
+        ArgumentNullException.ThrowIfNull(channels, nameof(channels));
+        
+        foreach (var channel in channels)
+        {
+            _logger.LogDebug("Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...",
+                channel.Name, channel.BroadcasterId);
+
+            channel.PropertyChanged += OnTwitchChannelUpdated;
+
+            TwitchEvents.OnStreamUp += channel.OnStreamUp;
+            TwitchEvents.OnStreamDown += channel.OnStreamDown;
+            TwitchEvents.OnViewCount += channel.OnViewCount;
+
+            TwitchEvents.ListenToVideoPlayback(channel.Id);
+        }
+        
+        TwitchEvents.SendTopics(AccessToken);
+    }
+
+    public async Task RegisterForEventsAsync(IEnumerable<TwitchChannel> channels)
+    {
+        ArgumentNullException.ThrowIfNull(channels, nameof(channels));
+
+        var channelsArr = channels as TwitchChannel[] ?? channels.ToArray();
+        var tasks = channelsArr.Select(channel =>
+        {
+            return Task.Run(() =>
+            {
+                _logger.LogDebug(
+                    "Registering for events for {channelName} with broadcaster id {channelBroadcasterId} ...",
+                    channel.Name, channel.BroadcasterId);
+
+                channel.PropertyChanged += OnTwitchChannelUpdated;
+
+                TwitchEvents.OnStreamUp += channel.OnStreamUp;
+                TwitchEvents.OnStreamDown += channel.OnStreamDown;
+                TwitchEvents.OnViewCount += channel.OnViewCount;
+            });
+        });
+
+        await Task.WhenAll(tasks).ContinueWith(_ =>
+        {
+            foreach (var c in channelsArr)
+                TwitchEvents.ListenToVideoPlayback(c.Id);
+
+            TwitchEvents.SendTopics(AccessToken);
+        });
+    }
+
+    public async Task LoadChannelDataAsync(TwitchChannel channel)
+    {
+        ArgumentNullException.ThrowIfNull(channel, nameof(channel));
+        
+        _logger.LogDebug("Loading channel data for {channelName} with broadcaster id {channelBroadcasterId} ...",
+            channel.Name, channel.BroadcasterId);
+
+        await Task.Run(() => channel.UpdateChannelData(this));
+    }
+
+    public async Task LoadChannelDataAsync(List<TwitchChannel> channels)
+    {
+        ArgumentNullException.ThrowIfNull(channels, nameof(channels));
+        
+        var tasks = channels.Select(channel =>
+        {
+            return Task.Run(() =>
+            {
+                _logger.LogDebug("Loading channel data for {channelName} with broadcaster id {channelBroadcasterId} ...",
+                    channel.Name, channel.BroadcasterId);
+
+                channel.UpdateChannelData(this);
+            });
+        });
+        
+        await Task.WhenAll(tasks);
     }
 
     public void UnregisterFromEvents(TwitchChannel channel)
@@ -321,6 +443,8 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         }
         
         _raidStartTime = TimeZoneInfo.ConvertTime(raid.CreatedAt, TimeZoneInfo.Local);
+        
+        to.LastRaided = DateTime.Now;
 
         Task.Run(async () =>
         {
@@ -453,14 +577,17 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
             return;
 
         // Only update when should affect the sorting or available items in the list
-        if (e.PropertyName != nameof(TwitchChannel.IsLive))
-            return;
-
-        TwitchChannelUpdated?.Invoke(this, channel);
+        //switch (e.PropertyName)
+        //{
+        //    case nameof(TwitchChannel.IsLive):
+        //    case nameof(TwitchChannel.ViewerCount):
+        //        TwitchChannelUpdated?.Invoke(this, channel);
+        //        break;
+        //    
+        //    default:
+        //        return;
+        //}
     }
-
-    public event PropertyChangingEventHandler? PropertyChanging;
-    public event PropertyChangedEventHandler? PropertyChanged;
 
     private void OnPropertyChanged([CallerMemberName] string? propertyName = null)
     {
@@ -470,6 +597,11 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
     private void OnPropertyChanging([CallerMemberName] string? propertyName = null)
     {
         PropertyChanging?.Invoke(this, new PropertyChangingEventArgs(propertyName));
+    }
+
+    private void OnUserLoginChanged()
+    {
+        UserLoginChanged?.Invoke(this, EventArgs.Empty);
     }
 
     private bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
@@ -482,10 +614,5 @@ public sealed class TwitchService : ITwitchService, INotifyPropertyChanged, INot
         OnPropertyChanged(propertyName);
 
         return true;
-    }
-
-    private void OnOnUserLoginChanged()
-    {
-        UserLoginChanged?.Invoke(this, EventArgs.Empty);
     }
 }

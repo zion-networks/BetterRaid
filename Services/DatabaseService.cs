@@ -1,6 +1,9 @@
 using System;
+using System.Collections.Generic;
+using System.ComponentModel;
 using System.IO;
 using System.Linq;
+using System.Runtime.CompilerServices;
 using System.Threading.Tasks;
 using BetterRaid.Misc;
 using BetterRaid.Models;
@@ -22,21 +25,53 @@ public interface IDatabaseService
     bool TrySetRaided(TwitchChannel channel, DateTime dateTime);
 }
 
-public class DatabaseService : IDatabaseService
+public class DatabaseService : IDatabaseService, INotifyPropertyChanged
 {
     private string? _databaseFilePath;
     private readonly ILogger<DatabaseService> _logger;
     private readonly ITwitchService _twitch;
+    private bool _autoSave = true;
 
-    public bool OnlyOnline { get; set; }
-    public bool AutoSave { get; private set; } = true;
+    public event PropertyChangedEventHandler? PropertyChanged;
     
+    public bool OnlyOnline { get; set; }
+
+    public bool AutoSave
+    {
+        get => _autoSave;
+        private set
+        {
+            if (SetField(ref _autoSave, value) && Database is not null)
+            {
+                if (value)
+                {
+                    Database.PropertyChanged += OnDatabaseChanged;
+                }
+                else
+                {
+                    Database.PropertyChanged -= OnDatabaseChanged;
+                }
+            }
+        }
+    }
+
     public BetterRaidDatabase? Database { get; set; }
 
     public DatabaseService(ILogger<DatabaseService> logger, ITwitchService twitch)
     {
         _logger = logger;
         _twitch = twitch;
+        
+        _twitch.TwitchChannelUpdated += OnTwitchChannelUpdated;
+    }
+
+    private void OnTwitchChannelUpdated(object? sender, TwitchChannel e)
+    {
+        if (Database == null)
+            return;
+
+        if (AutoSave)
+            Save();
     }
 
     public void LoadOrCreate()
@@ -64,6 +99,11 @@ public class DatabaseService : IDatabaseService
                 Save(path);
             
                 _logger.LogDebug("Created new database at {path}", path);
+
+                if (AutoSave)
+                {
+                    Database.PropertyChanged += OnDatabaseChanged;
+                }
             
                 return;
             
@@ -73,6 +113,11 @@ public class DatabaseService : IDatabaseService
 
                 _databaseFilePath = path;
                 Database = dbObj ?? throw new JsonException("Failed to read database file");
+                
+                if (AutoSave)
+                {
+                    Database.PropertyChanged += OnDatabaseChanged;
+                }
 
                 _logger.LogDebug("Loaded database from {path}", path);
 
@@ -127,6 +172,9 @@ public class DatabaseService : IDatabaseService
         if (Database.Channels.Any(c => c.Name?.Equals(c.Name, StringComparison.CurrentCultureIgnoreCase) == true))
             return;
         
+        if (AutoSave)
+            Save();
+        
         Database.Channels.Add(channel);
     }
 
@@ -141,6 +189,9 @@ public class DatabaseService : IDatabaseService
         
         if (index == -1)
             return;
+        
+        if (AutoSave)
+            Save();
         
         Database.Channels.RemoveAt(index);
     }
@@ -158,6 +209,33 @@ public class DatabaseService : IDatabaseService
             return false;
         
         twitchChannel.LastRaided = dateTime;
+        
+        if (AutoSave)
+            Save();
+        
         return true;
     }
+
+    private void OnDatabaseChanged(object? sender, PropertyChangedEventArgs e)
+    {
+        if (AutoSave)
+            Save();
+    }
+
+    #region Event Handlers
+
+    protected virtual void OnPropertyChanged([CallerMemberName] string? propertyName = null)
+    {
+        PropertyChanged?.Invoke(this, new PropertyChangedEventArgs(propertyName));
+    }
+
+    protected bool SetField<T>(ref T field, T value, [CallerMemberName] string? propertyName = null)
+    {
+        if (EqualityComparer<T>.Default.Equals(field, value)) return false;
+        field = value;
+        OnPropertyChanged(propertyName);
+        return true;
+    }
+    
+    #endregion Event Handlers
 }

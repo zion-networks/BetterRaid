@@ -1,0 +1,48 @@
+<reactiveUi:ReactiveUserControl x:TypeArguments="vm:SettingsPageViewModel"
+                                xmlns="https://github.com/avaloniaui"
+                                xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                                xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+                                xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+                                xmlns:reactiveUi="http://reactiveui.net"
+                                xmlns:vm="clr-namespace:BetterRaid.ViewModels"
+                                mc:Ignorable="d" d:DesignWidth="800" d:DesignHeight="450"
+                                x:Class="BetterRaid.Controls.SettingsPage"
+                                x:DataType="vm:SettingsPageViewModel">
+    <Grid ColumnDefinitions="Auto,*,*"
+          RowDefinitions="Auto, Auto">
+        
+        <Button Grid.Column="0"
+                Grid.Row="0"
+                Height="32"
+                Width="32"
+                HorizontalAlignment="Center"
+                VerticalAlignment="Center"
+                HorizontalContentAlignment="Center"
+                
+                Content="&lt;"
+                Command="{Binding GoPageBackCommand}" />
+        
+        <TextBlock Grid.Column="1"
+                   Grid.ColumnSpan="2"
+                   Grid.Row="0"
+                   HorizontalAlignment="Left"
+                   VerticalAlignment="Center"
+                   FontSize="24"
+                   TextDecorations="Underline"
+                   Margin="10, 0, 0, 10"
+                   Text="Settings" />
+        
+        <Label Grid.Column="0"
+               Grid.ColumnSpan="2"
+               Grid.Row="1"
+               Content="Show/Hide your Viewers" />
+        
+        <ToggleSwitch Grid.Column="2"
+                      Grid.Row="1"
+                      IsChecked="{Binding 
+                      Database.Database.ShowUserViewerCount,
+                      Mode=TwoWay,
+                      UpdateSourceTrigger=PropertyChanged,
+                      FallbackValue={x:True}}" />
+    </Grid>
+</reactiveUi:ReactiveUserControl>

@@ -1,11 +1,13 @@
 ﻿<Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup>
-    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <ApplicationIcon>Assets/logo.ico</ApplicationIcon>
+    <OutputType>WinExe</OutputType>
+    <IsPackable>false</IsPackable>
+    <Company>Zion Networks UG (haftungsbeschränkt)</Company>
   </PropertyGroup>
 
   <ItemGroup>
@@ -27,5 +29,12 @@
     <PackageReference Include="Microsoft.Extensions.Logging.Abstractions" Version="8.0.1" />
     <PackageReference Include="Microsoft.Extensions.Logging.Console" Version="8.0.0" />
     <PackageReference Include="TwitchLib" Version="3.5.3" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="Controls\ChannelsPage.axaml.cs">
+      <DependentUpon>MainWindowChannelsListView.axaml</DependentUpon>
+      <SubType>Code</SubType>
+    </Compile>
   </ItemGroup>
 </Project>

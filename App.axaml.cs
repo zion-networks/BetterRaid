@@ -10,6 +10,7 @@ using BetterRaid.ViewModels;
 using BetterRaid.Views;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Logging;
+using ReactiveUI;
 
 namespace BetterRaid;
 
@@ -61,13 +62,14 @@ public class App : Application
         var services = new ServiceCollection();
         services.AddLogging(logging =>
         {
-            logging.SetMinimumLevel(LogLevel.Information);
+            logging.SetMinimumLevel(LogLevel.Debug);
             logging.AddConsole();
         });
         services.AddSingleton<ITwitchService, TwitchService>();
         services.AddSingleton<IWebToolsService, WebToolsService>();
         services.AddSingleton<IDatabaseService, DatabaseService>();
         services.AddSingleton<IDispatcherService, DispatcherService>(_ => new DispatcherService(Dispatcher.UIThread));
+        services.AddTransient<ChannelsPageViewModel>();
         services.AddTransient<MainWindowViewModel>();
 
         return services.BuildServiceProvider();
@@ -82,9 +84,10 @@ public class App : Application
             throw new FieldAccessException($"\"{nameof(_serviceProvider)}\" was null");
         }
 
+        var vm = _serviceProvider.GetRequiredService<MainWindowViewModel>();
         var mainWindow = new MainWindow
         {
-            DataContext = _serviceProvider.GetRequiredService<MainWindowViewModel>()
+            DataContext = vm
         };
 
         switch (ApplicationLifetime)
@@ -112,7 +115,9 @@ public class App : Application
         try
         {
             var db = _serviceProvider.GetRequiredService<IDatabaseService>();
-            db.Save();
+            
+            if (db.AutoSave)
+                db.Save();
         }
         catch (Exception e)
         {
