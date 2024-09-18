@@ -42,7 +42,7 @@ public class MainWindowViewModel : ViewModelBase, IScreen
     public bool OnlyOnline
     {
         get => _onlyOnline;
-        set => this.RaiseAndSetIfChanged(ref _onlyOnline, value);
+        set => this.RaiseAndSetIfChanged(ref _onlyOnline, value, Database.Database);
     }
 
     public bool IsLoggedIn =>
@@ -66,6 +66,8 @@ public class MainWindowViewModel : ViewModelBase, IScreen
         WebTools = webTools;
         Database = db;
         Filter = string.Empty;
+        
+        OnlyOnline = Database.Database?.OnlyOnline ?? false;
         
         this.RaisePropertyChanged(nameof(IsLoggedIn));
         Twitch.UserLoginChanged += OnUserLoginChanged;
