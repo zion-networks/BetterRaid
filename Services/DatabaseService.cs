@@ -163,6 +163,7 @@ public class DatabaseService : IDatabaseService, INotifyPropertyChanged
         var dbStr = JsonConvert.SerializeObject(Database, Formatting.Indented);
         var targetPath = _databaseFilePath!;
 
+        FileUtils.EnsureDirectoryExists(targetPath);
         File.WriteAllText(targetPath, dbStr);
 
         _logger.LogDebug("Saved database to {targetPath}", targetPath);
